@@ -1,0 +1,43 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+
+namespace BSO.Sync.FileTypes
+{
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ServerFile
+    {
+        [JsonProperty]
+        public string ServerName { get; set; }
+        [JsonProperty]
+        public string ServerAddress { get; set; }
+        [JsonProperty]
+        public string Password { get; set; }
+        [JsonProperty]
+        public DateTime CreationDate { get; set; }
+        [JsonProperty]
+        public DateTime LastUpdateDate { get; set; }
+        [JsonProperty]
+        public Guid ServerGUID { get; set; }
+        [JsonProperty]
+        public List<ModFolder> ModFolders { get; set; }
+        internal ServerFile(string ServerName, string ServerAddress, string Password, List<ModFolder> ModFolders,DateTime LastUpdate, DateTime CreationDate, Guid ServerGUID)
+        {
+            this.ServerAddress = ServerAddress;
+            this.ServerName = ServerName;
+            this.Password = Password;
+            this.ModFolders = ModFolders;
+            this.CreationDate = CreationDate;
+            this.ServerGUID = ServerGUID;
+            LastUpdateDate = LastUpdate;
+        }
+        internal ServerFile()
+        {
+
+        }
+    }
+}
