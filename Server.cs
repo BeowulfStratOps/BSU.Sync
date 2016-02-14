@@ -8,7 +8,7 @@ using System.IO;
 
 namespace BSO.Sync
 {
-    internal struct ModFolderHash
+    public struct ModFolderHash
     {
         internal ModFolder ModName;
         internal List<HashType> Hashes;
@@ -30,7 +30,6 @@ namespace BSO.Sync
         List<ModFolderHash> ModHashes;
         Guid ServerGuid;
         
-
         public void CreateNewServer(string ServerName, string ServerAddress, string Password, string LPath, string OutputPath)
         {
             this.ServerAddress = ServerAddress;
@@ -39,14 +38,9 @@ namespace BSO.Sync
             CreationDate = DateTime.Now;
             LastUpdate = DateTime.Now;
             ServerGuid = Guid.NewGuid();
-            Mods = GetFolders(new DirectoryInfo(LPath));
-            // As we are creating a new server the LocalPath is actually the OutputPath, so we don't taint the local copy of the mods
             LocalPath = OutputPath;
-            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(LPath, "server.json")));
-            FileCopy.CopyAll(new DirectoryInfo(LPath), new DirectoryInfo(OutputPath));
-            FileCopy.CleanUpFolder(new DirectoryInfo(LPath), new DirectoryInfo(LocalPath), new DirectoryInfo(LocalPath));
-            ModHashes = HashAllMods();
-            FileWriter.WriteModHashes(ModHashes, new DirectoryInfo(LocalPath));
+            UpdateServer(new DirectoryInfo(LPath));
+
         }
         List<ModFolder> GetFolders()
         {
@@ -86,6 +80,67 @@ namespace BSO.Sync
             LastUpdate = sf.LastUpdateDate;
             CreationDate = sf.CreationDate;
             ServerGuid = sf.ServerGUID;
+        }
+        public void UpdateServer(DirectoryInfo InputDirectory)
+        {
+            LastUpdate = DateTime.Now;
+            Mods = GetFolders(InputDirectory);
+            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(InputDirectory.FullName, "server.json")));
+            FileCopy.CopyAll(InputDirectory, new DirectoryInfo(LocalPath));
+            FileCopy.CleanUpFolder(InputDirectory, new DirectoryInfo(LocalPath), new DirectoryInfo(LocalPath));
+            ModHashes = HashAllMods();
+            FileWriter.WriteModHashes(ModHashes, new DirectoryInfo(LocalPath));
+        }
+        public List<Change> GenerateChangeList(List<ModFolderHash> NewHashes)
+        {
+            List<Change> ChangeList = new List<Change>();
+            foreach (ModFolderHash mfh in NewHashes)
+            {
+                if (!ModHashes.Exists(x => x.ModName.ModName == mfh.ModName.ModName))
+                {
+                    // If the entire mod doesn't exist, add it all
+                    foreach (HashType h in mfh.Hashes)
+                    {
+                        ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                    }
+                }
+                else
+                {
+                    int indexInLocalHash = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                    int indexInNewHash = NewHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                    foreach (HashType h in mfh.Hashes)
+                    {
+                        if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        {
+                            // File exists both in the local hash and the remote hash
+                            if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName && !x.Hash.SequenceEqual(h.Hash)))
+                            {
+                                // A file exists but has a different hash, it must be (re)acquired 
+                                Console.WriteLine("{0} exists locally and remotely but hashes are different", mfh.ModName.ModName + h.FileName); 
+                                HashType hash = ModHashes[indexInLocalHash].Hashes.Find(x => x.FileName == h.FileName);
+                                ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                            }
+                        }
+                        else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
+                        {
+                            // Does not exist locally, but does exist remotely. Acquire it
+                            Console.WriteLine("{0} exists remotely but not locally", mfh.ModName.ModName + h.FileName);
+                            ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Delete));
+                        }
+                        else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        {
+                            Console.WriteLine("{0} exists locally but not remotely", mfh.ModName.ModName + h.FileName);
+                            // Exists locally, but does not exist remotely. Delete it
+                            ChangeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete));
+                        }
+                    }
+                }
+            }
+            return ChangeList;
+        }
+        public List<ModFolderHash> GetLocalHashes()
+        {
+            return ModHashes;
         }
     }
 }
