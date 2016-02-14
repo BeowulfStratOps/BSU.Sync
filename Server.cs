@@ -116,7 +116,6 @@ namespace BSO.Sync
                             if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName && !x.Hash.SequenceEqual(h.Hash)))
                             {
                                 // A file exists but has a different hash, it must be (re)acquired 
-                                Console.WriteLine("{0} exists locally and remotely but hashes are different", mfh.ModName.ModName + h.FileName); 
                                 HashType hash = ModHashes[indexInLocalHash].Hashes.Find(x => x.FileName == h.FileName);
                                 ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
                             }
@@ -124,12 +123,10 @@ namespace BSO.Sync
                         else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
                         {
                             // Does not exist locally, but does exist remotely. Acquire it
-                            Console.WriteLine("{0} exists remotely but not locally", mfh.ModName.ModName + h.FileName);
                             ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Delete));
                         }
                         else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
-                            Console.WriteLine("{0} exists locally but not remotely", mfh.ModName.ModName + h.FileName);
                             // Exists locally, but does not exist remotely. Delete it
                             ChangeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete));
                         }
