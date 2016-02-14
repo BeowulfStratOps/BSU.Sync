@@ -31,7 +31,7 @@ namespace BSO.Sync
         public static List<HashType> HashFolder(string Dir)
         {
             List<HashType> hashes = new List<HashType>();
-            foreach (string file in Directory.EnumerateFiles(Dir,"*",SearchOption.AllDirectories))
+            foreach (string file in Directory.EnumerateFiles(Dir,"*",SearchOption.AllDirectories).Where(f => !f.EndsWith(".zsync")))
             {
                 byte[] hash = GetFileHash(file);
                 hashes.Add(new HashType(file.Replace(Dir,string.Empty), hash));
