@@ -9,11 +9,11 @@ namespace BSO.Sync
     public class ModFolder
     {
         public string ModName { get; set; }
-        internal ModFolder(string ModName)
+        public ModFolder(string ModName)
         {
             this.ModName = ModName;
         }
-        internal ModFolder()
+        public ModFolder()
         {
 
         }
