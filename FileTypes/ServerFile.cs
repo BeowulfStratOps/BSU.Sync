@@ -22,10 +22,12 @@ namespace BSO.Sync.FileTypes
         [JsonProperty]
         public DateTime LastUpdateDate { get; set; }
         [JsonProperty]
+        public List<Uri> SyncUris { get; set; }
+        [JsonProperty]
         public Guid ServerGUID { get; set; }
         [JsonProperty]
         public List<ModFolder> ModFolders { get; set; }
-        internal ServerFile(string ServerName, string ServerAddress, string Password, List<ModFolder> ModFolders,DateTime LastUpdate, DateTime CreationDate, Guid ServerGUID)
+        internal ServerFile(string ServerName, string ServerAddress, string Password, List<ModFolder> ModFolders,DateTime LastUpdate, DateTime CreationDate, Guid ServerGUID, List<Uri> SyncUris)
         {
             this.ServerAddress = ServerAddress;
             this.ServerName = ServerName;
@@ -33,6 +35,7 @@ namespace BSO.Sync.FileTypes
             this.ModFolders = ModFolders;
             this.CreationDate = CreationDate;
             this.ServerGUID = ServerGUID;
+            this.SyncUris = SyncUris;
             LastUpdateDate = LastUpdate;
         }
         internal ServerFile()

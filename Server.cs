@@ -29,12 +29,14 @@ namespace BSO.Sync
         DateTime LastUpdate;
         List<ModFolderHash> ModHashes;
         Guid ServerGuid;
+        List<Uri> SyncUris;
         
-        public void CreateNewServer(string ServerName, string ServerAddress, string Password, string LPath, string OutputPath)
+        public void CreateNewServer(string ServerName, string ServerAddress, string Password, string LPath, string OutputPath, List<Uri> SyncUris)
         {
             this.ServerAddress = ServerAddress;
             this.ServerName = ServerName;
             this.Password = Password;
+            this.SyncUris = SyncUris;
             CreationDate = DateTime.Now;
             LastUpdate = DateTime.Now;
             ServerGuid = Guid.NewGuid();
@@ -68,7 +70,7 @@ namespace BSO.Sync
         }
         public FileTypes.ServerFile GetServerFile()
         {
-            return new FileTypes.ServerFile(ServerName, ServerAddress, Password, Mods,LastUpdate,CreationDate,ServerGuid);
+            return new FileTypes.ServerFile(ServerName, ServerAddress, Password, Mods,LastUpdate,CreationDate,ServerGuid,SyncUris);
         }
         public void LoadServer(FileTypes.ServerFile sf, string LocalPath)
         {
@@ -88,8 +90,14 @@ namespace BSO.Sync
             FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(InputDirectory.FullName, "server.json")));
             FileCopy.CopyAll(InputDirectory, new DirectoryInfo(LocalPath));
             FileCopy.CleanUpFolder(InputDirectory, new DirectoryInfo(LocalPath), new DirectoryInfo(LocalPath));
+            // TODO: Maybe remove all zsync files?
             ModHashes = HashAllMods();
+            foreach (string f in Directory.EnumerateFiles(LocalPath,"*",SearchOption.AllDirectories).Where(name => !name.EndsWith(".zsync")))
+            {
+                ZsyncManager.Make(f);
+            }
             FileWriter.WriteModHashes(ModHashes, new DirectoryInfo(LocalPath));
+
         }
         public List<Change> GenerateChangeList(List<ModFolderHash> NewHashes)
         {
