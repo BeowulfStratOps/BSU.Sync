@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using com.salesforce.zsync;
 using System.Runtime.CompilerServices;
+using System.IO;
+using System.Net;
 
 [assembly: InternalsVisibleTo("BSOU.CommandLinePrototype")]
 namespace BSO.Sync
@@ -23,9 +25,13 @@ namespace BSO.Sync
         }
         internal static void ZsyncDownload(Uri ControlFileUri, string SaveFolder, string FileName)
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(SaveFolder + @"\" + FileName));
             Zsync zsync = new Zsync();
+            
             Zsync.Options options = new Zsync.Options();
-            java.net.URI javaURI = new java.net.URI(ControlFileUri.ToString());
+
+
+            java.net.URI javaURI = new java.net.URI(Uri.EscapeUriString(ControlFileUri.ToString()));
             options.setOutputFile(java.nio.file.Paths.get(SaveFolder + @"\" + FileName));
             zsync.zsync(javaURI, options);
 
