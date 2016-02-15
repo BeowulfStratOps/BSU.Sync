@@ -206,5 +206,9 @@ namespace BSO.Sync
         {
             return ModHashes;
         }
+        public DirectoryInfo GetLocalPath()
+        {
+            return new DirectoryInfo(LocalPath);
+        }
     }
 }
