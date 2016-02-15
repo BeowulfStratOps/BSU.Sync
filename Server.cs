@@ -197,6 +197,11 @@ namespace BSO.Sync
             }
             return ChangeList;
         }
+        public Uri GetServerFileUri()
+        {
+            // TODO: Some sort of selection?
+            return new Uri(SyncUris[0], "server.json");
+        }
         public List<ModFolderHash> GetLocalHashes()
         {
             return ModHashes;
