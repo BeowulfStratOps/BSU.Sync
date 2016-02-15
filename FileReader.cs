@@ -19,5 +19,13 @@ namespace BSO.Sync
                 return (ServerFile)js.Deserialize(tr,typeof(ServerFile));
             }
         }
+        internal static HashFile ReadHashFileFromStream(Stream s)
+        {
+            JsonSerializer js = new JsonSerializer();
+            using (TextReader tr = new StreamReader(s))
+            {
+                return (HashFile)js.Deserialize(tr, typeof(HashFile));
+            }
+        }
     }
 }
