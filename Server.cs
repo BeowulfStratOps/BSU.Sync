@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BSO.Sync.FileTypes;
 using System.IO;
+using System.Net;
 
 namespace BSO.Sync
 {
@@ -31,6 +32,13 @@ namespace BSO.Sync
         Guid ServerGuid;
         List<Uri> SyncUris;
         
+        public void LoadFromWeb(Uri RemoteServerFile, DirectoryInfo LocalPath)
+        {
+            this.LocalPath = LocalPath.ToString();
+            WebRequest request = WebRequest.CreateHttp(RemoteServerFile);
+            LoadServer(FileReader.ReadServerFileFromStream(request.GetResponse().GetResponseStream()), LocalPath.ToString());
+            ModHashes = HashAllMods();
+        }
         public void CreateNewServer(string ServerName, string ServerAddress, string Password, string LPath, string OutputPath, List<Uri> SyncUris)
         {
             this.ServerAddress = ServerAddress;
@@ -41,6 +49,7 @@ namespace BSO.Sync
             LastUpdate = DateTime.Now;
             ServerGuid = Guid.NewGuid();
             LocalPath = OutputPath;
+            this.SyncUris = SyncUris;
             UpdateServer(new DirectoryInfo(LPath));
 
         }
@@ -82,6 +91,7 @@ namespace BSO.Sync
             LastUpdate = sf.LastUpdateDate;
             CreationDate = sf.CreationDate;
             ServerGuid = sf.ServerGUID;
+            SyncUris = sf.SyncUris;
         }
         public void UpdateServer(DirectoryInfo InputDirectory)
         {
@@ -98,6 +108,27 @@ namespace BSO.Sync
             }
             FileWriter.WriteModHashes(ModHashes, new DirectoryInfo(LocalPath));
 
+        }
+        public void FetchChanges(DirectoryInfo BaseDirectory, List<ModFolderHash> NewHashes)
+        {
+            List<Change> Changes = GenerateChangeList(NewHashes);
+            foreach (Change c in Changes)
+            {
+                if (c.Action == ChangeAction.Acquire)
+                {
+                    if (c.FilePath != "server.json") 
+                    {
+                        Console.WriteLine(c.FilePath);
+                        Uri reqUri = new Uri(SyncUris[0], c.FilePath + ".zsync");
+                        ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                    }
+
+                }
+                else if (c.Action == ChangeAction.Delete)
+                {
+                    Console.WriteLine(Path.Combine(BaseDirectory.ToString(), c.FilePath));
+                }
+            }
         }
         public List<Change> GenerateChangeList(List<ModFolderHash> NewHashes)
         {
@@ -131,7 +162,7 @@ namespace BSO.Sync
                         else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
                         {
                             // Does not exist locally, but does exist remotely. Acquire it
-                            ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Delete));
+                            ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
                         }
                         else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
