@@ -35,8 +35,11 @@ namespace BSO.Sync
             {
                 foreach (string file in Directory.EnumerateFiles(Dir, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".zsync")))
                 {
-                    byte[] hash = GetFileHash(file);
-                    hashes.Add(new HashType(file.Replace(Dir, string.Empty), hash));
+                    if (!file.EndsWith("hash.json") && !file.EndsWith("server.json")) // Lets not hash the control files
+                    {
+                        byte[] hash = GetFileHash(file);
+                        hashes.Add(new HashType(file.Replace(Dir, string.Empty), hash));
+                    }
                 }
             }
             return hashes;
