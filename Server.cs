@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BSO.Sync.FileTypes;
 using System.IO;
 using System.Net;
+using System.Threading;
 
 namespace BSO.Sync
 {
@@ -112,23 +113,45 @@ namespace BSO.Sync
         public void FetchChanges(DirectoryInfo BaseDirectory, List<ModFolderHash> NewHashes)
         {
             List<Change> Changes = GenerateChangeList(NewHashes);
+            List<Task> tasks = new List<Task>();
             foreach (Change c in Changes)
             {
                 if (c.Action == ChangeAction.Acquire)
                 {
-                    if (c.FilePath != "server.json") 
+                    //Changes.Remove(c);
+                    if (c.FilePath != "server.json")
                     {
-                        Console.WriteLine(c.FilePath);
+                        //Console.WriteLine("Getting {0}",c.FilePath);
                         Uri reqUri = new Uri(SyncUris[0], c.FilePath + ".zsync");
-                        ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                        try
+                        {
+                            //ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+
+                            Task t = Task.Factory.StartNew(() => ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath));
+                            tasks.Add(t);
+                            //Console.WriteLine("Created task for {0}", c.FilePath);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ex is com.salesforce.zsync.ZsyncChecksumValidationFailedException)
+                            {
+                                Console.WriteLine("Checksum Validation failed for {0}", c.FilePath);
+                            }
+                            // TODO: Add to a reacquire list and log the error
+                        }
                     }
 
                 }
                 else if (c.Action == ChangeAction.Delete)
                 {
                     Console.WriteLine(Path.Combine(BaseDirectory.ToString(), c.FilePath));
+                    //Changes.Remove(c);
                 }
             }
+            Task.WaitAll(tasks.ToArray());
+            
+            
         }
         public List<Change> GenerateChangeList(List<ModFolderHash> NewHashes)
         {
