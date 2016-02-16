@@ -82,7 +82,7 @@ namespace BSO.Sync
         }
         public FileTypes.ServerFile GetServerFile()
         {
-            return new FileTypes.ServerFile(ServerName, ServerAddress, Password, Mods,LastUpdate,CreationDate,ServerGuid,SyncUris);
+            return new FileTypes.ServerFile(ServerName, ServerAddress, ServerPort, Password, Mods,LastUpdate,CreationDate,ServerGuid,SyncUris);
         }
         public void LoadServer(FileTypes.ServerFile sf, string LocalPath)
         {
