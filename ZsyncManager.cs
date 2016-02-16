@@ -29,11 +29,18 @@ namespace BSO.Sync
             Zsync zsync = new Zsync();
             
             Zsync.Options options = new Zsync.Options();
+            string ControlFileString = ControlFileUri.ToString().Replace(Path.GetFileName(ControlFileUri.LocalPath), Uri.EscapeDataString(Path.GetFileName(ControlFileUri.LocalPath)));
 
-
-            java.net.URI javaURI = new java.net.URI(Uri.EscapeUriString(ControlFileUri.ToString()));
+            java.net.URI javaURI = new java.net.URI(ControlFileString);
             options.setOutputFile(java.nio.file.Paths.get(SaveFolder + @"\" + FileName));
-            zsync.zsync(javaURI, options);
+            try
+            {
+                zsync.zsync(javaURI, options);
+            }
+            catch (ZsyncException ex)
+            {
+                Console.WriteLine("Something failed \n {0} ", ex.getMessage());
+            }
 
         }
     }
