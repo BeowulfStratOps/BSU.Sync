@@ -16,6 +16,8 @@ namespace BSO.Sync.FileTypes
         [JsonProperty]
         public string ServerAddress { get; set; }
         [JsonProperty]
+        public int ServerPort { get; set; }
+        [JsonProperty]
         public string Password { get; set; }
         [JsonProperty]
         public DateTime CreationDate { get; set; }

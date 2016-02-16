@@ -25,6 +25,7 @@ namespace BSO.Sync
         string LocalPath;
         string ServerName;
         string ServerAddress;
+        int ServerPort;
         string Password;
         List<ModFolder> Mods;
         DateTime CreationDate;
@@ -40,10 +41,11 @@ namespace BSO.Sync
             LoadServer(FileReader.ReadServerFileFromStream(request.GetResponse().GetResponseStream()), LocalPath.ToString());
             ModHashes = HashAllMods();
         }
-        public void CreateNewServer(string ServerName, string ServerAddress, string Password, string LPath, string OutputPath, List<Uri> SyncUris)
+        public void CreateNewServer(string ServerName, string ServerAddress, string Password, int ServerPort, string LPath, string OutputPath, List<Uri> SyncUris)
         {
             this.ServerAddress = ServerAddress;
             this.ServerName = ServerName;
+            this.ServerPort = ServerPort;
             this.Password = Password;
             this.SyncUris = SyncUris;
             CreationDate = DateTime.Now;
@@ -87,6 +89,7 @@ namespace BSO.Sync
             this.LocalPath = LocalPath;
             ServerName = sf.ServerName;
             ServerAddress = sf.ServerAddress;
+            ServerPort = sf.ServerPort;
             Password = sf.Password;
             Mods = sf.ModFolders;
             LastUpdate = sf.LastUpdateDate;
