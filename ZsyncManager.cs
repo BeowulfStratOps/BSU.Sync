@@ -40,6 +40,8 @@ namespace BSO.Sync
             catch (ZsyncException ex)
             {
                 Console.WriteLine("Something failed \n {0} ", ex.getMessage());
+                Console.WriteLine("\t {0}", ControlFileString);
+
             }
 
         }
