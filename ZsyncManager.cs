@@ -48,8 +48,11 @@ namespace BSO.Sync
                         client.DownloadFile(ControlFileString.Replace(".zsync", string.Empty), SaveFolder + @"\" + FileName);
                     }
                 }
-                Console.WriteLine("Something failed \n {0} ", ex.Message);
-                Console.WriteLine("\t {0}", ControlFileString);
+                else
+                {
+                    Console.WriteLine("Something failed \n {0} ", ex.Message);
+                    Console.WriteLine("\t {0}", ControlFileString);
+                }
 
             }
 
