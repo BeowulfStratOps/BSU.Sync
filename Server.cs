@@ -71,13 +71,24 @@ namespace BSO.Sync
         }
         List<ModFolderHash> HashAllMods()
         {
+            List<Task> taskList = new List<Task>();
             List<ModFolderHash> Hashes = new List<ModFolderHash>();
             foreach (ModFolder mod in Mods)
             {
-                Console.WriteLine("hashing {0}", mod.ModName);
-                List<HashType> hashes = Hash.HashFolder(LocalPath + @"\" + mod.ModName);
-                Hashes.Add(new ModFolderHash(mod, hashes));
+                Task t = Task.Factory.StartNew(() =>
+                {
+                    Console.WriteLine("hashing {0}", mod.ModName);
+                    List<HashType> hashes = Hash.HashFolder(LocalPath + @"\" + mod.ModName);
+                    Hashes.Add(new ModFolderHash(mod, hashes));
+                });
+                t.ContinueWith((pTask) =>
+                {
+                    Console.WriteLine("hashed {0}", mod.ModName);
+                });
+                taskList.Add(t);
+
             }
+            Task.WaitAll(taskList.ToArray());
             return Hashes;
         }
         public FileTypes.ServerFile GetServerFile()
@@ -129,8 +140,18 @@ namespace BSO.Sync
                         try
                         {
                             //ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
-
-                            Task t = Task.Factory.StartNew(() => ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath));
+                            if (tasks.Count > 5)
+                            {
+                                Task.WaitAll(tasks.ToArray());
+                            }
+                            Task t = Task.Factory.StartNew(() => {
+                                Console.WriteLine("Starting");
+                                ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                            });
+                            t.ContinueWith((prevTask) => {
+                                Console.WriteLine("Ending");
+                                tasks.Remove(t);
+                            } );
                             tasks.Add(t);
                             //Console.WriteLine("Created task for {0}", c.FilePath);
 
@@ -212,6 +233,10 @@ namespace BSO.Sync
         public DirectoryInfo GetLocalPath()
         {
             return new DirectoryInfo(LocalPath);
+        }
+        public void UpdateHashes()
+        {
+            ModHashes = HashAllMods();
         }
     }
 }
