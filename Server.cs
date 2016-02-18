@@ -72,7 +72,7 @@ namespace BSO.Sync
         List<ModFolderHash> HashAllMods()
         {
             List<Task> taskList = new List<Task>();
-            List<ModFolderHash> Hashes = new List<ModFolderHash>();
+            List<ModFolderHash> Hashes = new List<ModFolderHash>(Mods.Count);
             foreach (ModFolder mod in Mods)
             {
                 Task t = Task.Factory.StartNew(() =>
@@ -140,16 +140,22 @@ namespace BSO.Sync
                         try
                         {
                             //ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                            /*
                             if (tasks.Count > 5)
-                            {
+                            { 
                                 Task.WaitAll(tasks.ToArray());
                             }
+                            */
+                            while (tasks.Count > 5)
+                            {
+
+                            }
                             Task t = Task.Factory.StartNew(() => {
-                                Console.WriteLine("Starting");
+                                //Console.WriteLine("Starting");
                                 ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
                             });
                             t.ContinueWith((prevTask) => {
-                                Console.WriteLine("Ending");
+                                //Console.WriteLine("Ending");
                                 tasks.Remove(t);
                             } );
                             tasks.Add(t);
