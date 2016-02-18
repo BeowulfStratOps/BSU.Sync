@@ -30,6 +30,10 @@ namespace BSO.Sync
         }
         public static List<HashType> HashFolder(string Dir)
         {
+			if (System.Environment.OSVersion.Platform == PlatformID.Unix) 
+			{
+				Dir = Dir.Replace (@"\", string.Empty);
+			}
             List<HashType> hashes = new List<HashType>();
             if (Directory.Exists(Dir))
             {
