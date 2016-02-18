@@ -37,9 +37,9 @@ namespace BSO.Sync
             {
                 zsync.zsync(javaURI, options);
             }
-            catch (ZsyncException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine("Something failed \n {0} ", ex.getMessage());
+                Console.WriteLine("Something failed \n {0} ", ex.Message);
                 Console.WriteLine("\t {0}", ControlFileString);
 
             }
