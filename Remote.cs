@@ -22,6 +22,13 @@ namespace BSO.Sync
                 Console.WriteLine(RequestUri);
                 WebRequest request2 = WebRequest.CreateHttp(RequestUri);
                 HashFile newHashFile = FileReader.ReadHashFileFromStream(request2.GetResponse().GetResponseStream());
+                foreach (HashType h in newHashFile.Hashes)
+                {
+                    if (h.FileName.StartsWith("/")) // File was probally made on linux..
+                    {
+                        h.FileName = h.FileName.Replace('/', System.IO.Path.DirectorySeparatorChar);
+                    }
+                }
                 hashFiles.Add(newHashFile);
             }
 
