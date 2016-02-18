@@ -221,6 +221,34 @@ namespace BSO.Sync
             }
             return ChangeList;
         }
+        public bool Validate(List<ModFolderHash> RemoteHashes)
+        {
+            foreach (ModFolderHash mfh in RemoteHashes)
+            {
+                int IndexInLocal = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                foreach (HashType h in mfh.Hashes)
+                {
+                    if (ModHashes[IndexInLocal].Hashes.Exists(x => x.FileName == h.FileName))
+                    {
+                        HashType remoteHash = ModHashes[IndexInLocal].Hashes.Find(x => x.FileName == h.FileName);
+                        if (remoteHash.Hash == h.Hash)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+            return false;
+
+        }
         public Uri GetServerFileUri()
         {
             // TODO: Some sort of selection?
