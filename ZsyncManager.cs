@@ -39,6 +39,15 @@ namespace BSO.Sync
             }
             catch (Exception ex)
             {
+                if (ex.Message == "Invalid Length header value '0'")
+                {
+                    // Is a 0 byte, just write it 
+                    using (WebClient client = new WebClient())
+                    {
+                        Console.WriteLine("Saving {0} to {1}", ControlFileString.Replace(".zsync", string.Empty), SaveFolder + @"\" + FileName);
+                        client.DownloadFile(ControlFileString.Replace(".zsync", string.Empty), SaveFolder + @"\" + FileName);
+                    }
+                }
                 Console.WriteLine("Something failed \n {0} ", ex.Message);
                 Console.WriteLine("\t {0}", ControlFileString);
 
