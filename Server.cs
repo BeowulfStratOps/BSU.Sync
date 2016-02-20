@@ -124,6 +124,14 @@ namespace BSO.Sync
             FileWriter.WriteModHashes(ModHashes, new DirectoryInfo(LocalPath));
 
         }
+        /// <summary>
+        /// Returns a list of all the mods this server is aware of
+        /// </summary>
+        /// <returns></returns>
+        public List<ModFolder> GetLoadedMods()
+        {
+            return Mods;
+        }
         public void FetchChanges(DirectoryInfo BaseDirectory, List<ModFolderHash> NewHashes)
         {
             List<Change> Changes = GenerateChangeList(NewHashes);
