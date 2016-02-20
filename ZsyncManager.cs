@@ -7,6 +7,7 @@ using com.salesforce.zsync;
 using System.Runtime.CompilerServices;
 using System.IO;
 using System.Net;
+using System.Threading;
 
 [assembly: InternalsVisibleTo("BSOU.CommandLinePrototype")]
 namespace BSO.Sync
@@ -35,7 +36,9 @@ namespace BSO.Sync
             options.setOutputFile(java.nio.file.Paths.get(SaveFolder + @"\" + FileName));
             try
             {
+                Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-gb");
                 zsync.zsync(javaURI, options);
+                Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.DefaultThreadCurrentCulture;
             }
             catch (Exception ex)
             {
