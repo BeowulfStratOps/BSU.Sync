@@ -1,0 +1,11 @@
+stages:
+  - build
+
+job:
+  stage: build
+  script:
+  - nuget restore BSO.Sync.sln
+  - msbuild.exe /maxcpucount /property:Configuration=Debug  "BSO.Sync.sln"
+  tags: 
+  - windows
+  except:
