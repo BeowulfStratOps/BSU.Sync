@@ -41,9 +41,7 @@ namespace BSO.Sync
             options.setOutputFile(java.nio.file.Paths.get(SaveFolder + @"\" + FileName));
             try
             {
-                Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-gb");
                 zsync.zsync(javaURI, options);
-                Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.DefaultThreadCurrentCulture;
             }
             catch (Exception ex)
             {
