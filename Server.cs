@@ -7,6 +7,7 @@ using BSO.Sync.FileTypes;
 using System.IO;
 using System.Net;
 using System.Threading;
+using NLog;
 
 namespace BSO.Sync
 {
@@ -22,6 +23,7 @@ namespace BSO.Sync
     }
     public class Server
     {
+        private Logger logger = LogManager.GetCurrentClassLogger();
         string LocalPath;
         string ServerName;
         string ServerAddress;
@@ -36,6 +38,7 @@ namespace BSO.Sync
         
         public void LoadFromWeb(Uri RemoteServerFile, DirectoryInfo LocalPath)
         {
+            logger.Info("Loading server from {0}, local path {1}", RemoteServerFile, LocalPath);
             this.LocalPath = LocalPath.ToString();
             WebRequest request = WebRequest.CreateHttp(RemoteServerFile);
             LoadServer(FileReader.ReadServerFileFromStream(request.GetResponse().GetResponseStream()), LocalPath.ToString());
@@ -43,6 +46,7 @@ namespace BSO.Sync
         }
         public void CreateNewServer(string ServerName, string ServerAddress, string Password, int ServerPort, string LPath, string OutputPath, List<Uri> SyncUris)
         {
+            logger.Info("Creating new server: ServerName {0}, ServerAddress {1}, Password {2}, ServerPort {3}, LPath {4}, OutputPath {5}, SyncUri[0] {6}", ServerName, ServerAddress, Password, ServerPort, LPath, OutputPath, SyncUris[0]);
             this.ServerAddress = ServerAddress;
             this.ServerName = ServerName;
             this.ServerPort = ServerPort;
@@ -62,28 +66,31 @@ namespace BSO.Sync
         }
         List<ModFolder> GetFolders(DirectoryInfo FilePath)
         {
+            logger.Info("Finding folders");
             List<ModFolder> returnList = new List<ModFolder>();
             foreach (string d in Directory.GetDirectories(FilePath.FullName))
             {
+                logger.Info("Found folder {0}", d.Replace(FilePath.FullName, string.Empty).Replace(@"\", string.Empty));
                 returnList.Add(new ModFolder(d.Replace(FilePath.FullName, string.Empty).Replace(@"\", string.Empty)));
             }
             return returnList;
         }
         List<ModFolderHash> HashAllMods()
         {
+            logger.Info("Hashing all mods");
             List<Task> taskList = new List<Task>();
             List<ModFolderHash> Hashes = new List<ModFolderHash>(Mods.Count);
             foreach (ModFolder mod in Mods)
             {
                 Task t = Task.Factory.StartNew(() =>
                 {
-                    Console.WriteLine("hashing {0}", mod.ModName);
+                    logger.Info("Hashing {0}", mod.ModName);
                     List<HashType> hashes = Hash.HashFolder(LocalPath + @"\" + mod.ModName);
                     Hashes.Add(new ModFolderHash(mod, hashes));
                 });
                 t.ContinueWith((pTask) =>
                 {
-                    Console.WriteLine("hashed {0}", mod.ModName);
+                    logger.Info("Hashed {0}", mod.ModName);
                 });
                 taskList.Add(t);
 
@@ -174,7 +181,7 @@ namespace BSO.Sync
                         {
                             if (ex is com.salesforce.zsync.ZsyncChecksumValidationFailedException)
                             {
-                                Console.WriteLine("Checksum Validation failed for {0}", c.FilePath);
+                                logger.Error(ex, "Checksum Validation failed for {0}", c.FilePath);
                             }
                             // TODO: Add to a reacquire list and log the error
                         }
@@ -183,7 +190,8 @@ namespace BSO.Sync
                 }
                 else if (c.Action == ChangeAction.Delete)
                 {
-                    Console.WriteLine(Path.Combine(BaseDirectory.ToString(), c.FilePath));
+                    logger.Info("Deleting {0}", Path.Combine(BaseDirectory.ToString(), c.FilePath));
+                    File.Delete(Path.Combine(BaseDirectory.ToString(), c.FilePath));
                     //Changes.Remove(c);
                 }
             }
@@ -251,16 +259,19 @@ namespace BSO.Sync
                         }
                         else
                         {
+                            logger.Info("Validation of mods failed");
                             return false;
                         }
                     }
                     else
                     {
+                        logger.Info("Validation of mods failed");
                         return false;
                     }
                 }
             }
-            return false;
+            logger.Info("Validation of mods passed");
+            return true;
 
         }
         public Uri GetServerFileUri()

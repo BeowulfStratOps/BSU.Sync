@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Security.Cryptography;
 using BSO.Sync.FileTypes;
+using NLog;
 
 namespace BSO.Sync
 {
     public static class Hash
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         public static byte[] GetFileHash(string Filename)
         {
             if (!File.Exists(Filename))
@@ -23,6 +25,7 @@ namespace BSO.Sync
                 {
                     using (BufferedStream bufferedStream = new BufferedStream(fileStream))
                     {
+                        logger.Trace("Hashing {0}", Filename);
                         return cryptoProvider.ComputeHash(bufferedStream);
                     }
                 }
