@@ -25,7 +25,6 @@ namespace BSO.Sync
         internal static void ZsyncDownload(Uri ControlFileUri, string SaveFolder, string FileName)
         {
             // Work around for BSOU-13
-            Console.WriteLine(java.util.Locale.getDefault());
             if (java.util.Locale.getDefault() != java.util.Locale.UK)
             {
                 java.util.Locale.setDefault(java.util.Locale.UK);
