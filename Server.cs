@@ -145,7 +145,6 @@ namespace BSU.Sync
             List<Task> tasks = new List<Task>();
             foreach (Change c in Changes)
             {
-                Console.WriteLine(c.Action);
                 if (c.Action == ChangeAction.Acquire)
                 {
                     //Changes.Remove(c);
