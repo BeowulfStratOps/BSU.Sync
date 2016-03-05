@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BSO.Sync.FileTypes
+namespace BSU.Sync.FileTypes
 {
     public class HashType
     {

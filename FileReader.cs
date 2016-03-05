@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using BSO.Sync.FileTypes;
+using BSU.Sync.FileTypes;
 using Newtonsoft.Json;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     internal static class FileReader
     {

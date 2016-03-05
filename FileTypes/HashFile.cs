@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace BSO.Sync.FileTypes
+namespace BSU.Sync.FileTypes
 {
     [JsonObject(MemberSerialization.OptIn)]
     public class HashFile

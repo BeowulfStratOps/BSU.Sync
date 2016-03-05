@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BSO.Sync.FileTypes;
+using BSU.Sync.FileTypes;
 using System.Net;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     public static class Remote
     {

@@ -5,10 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Security.Cryptography;
-using BSO.Sync.FileTypes;
+using BSU.Sync.FileTypes;
 using NLog;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     public static class Hash
     {

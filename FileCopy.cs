@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     internal static class FileCopy
     {

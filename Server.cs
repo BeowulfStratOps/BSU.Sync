@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BSO.Sync.FileTypes;
+using BSU.Sync.FileTypes;
 using System.IO;
 using System.Net;
 using System.Threading;
 using NLog;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     public struct ModFolderHash
     {

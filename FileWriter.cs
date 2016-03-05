@@ -5,10 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using Newtonsoft.Json;
-using BSO.Sync.FileTypes;
+using BSU.Sync.FileTypes;
 
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     internal static class FileWriter
     {

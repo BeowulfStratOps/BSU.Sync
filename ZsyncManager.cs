@@ -6,7 +6,7 @@ using System.Net;
 using NLog;
 
 [assembly: InternalsVisibleTo("BSOU.CommandLinePrototype")]
-namespace BSO.Sync
+namespace BSU.Sync
 {
     internal static class ZsyncManager
     {
