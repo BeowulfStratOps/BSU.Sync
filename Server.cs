@@ -145,6 +145,7 @@ namespace BSO.Sync
             List<Task> tasks = new List<Task>();
             foreach (Change c in Changes)
             {
+                Console.WriteLine(c.Action);
                 if (c.Action == ChangeAction.Acquire)
                 {
                     //Changes.Remove(c);
@@ -191,7 +192,11 @@ namespace BSO.Sync
                 else if (c.Action == ChangeAction.Delete)
                 {
                     logger.Info("Deleting {0}", Path.Combine(BaseDirectory.ToString(), c.FilePath));
-                    File.Delete(Path.Combine(BaseDirectory.ToString(), c.FilePath));
+                    if (File.Exists(Path.Combine(BaseDirectory.ToString(), c.FilePath)))
+                    {
+                        File.Delete(Path.Combine(BaseDirectory.ToString(), c.FilePath));
+                        Console.WriteLine(Path.Combine(BaseDirectory.ToString(), c.FilePath));
+                    }
                     //Changes.Remove(c);
                 }
             }
@@ -214,10 +219,23 @@ namespace BSO.Sync
                 }
                 else
                 {
+                    
                     int indexInLocalHash = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
                     int indexInNewHash = NewHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                    // Determine all deletions first
+                    foreach (HashType ht in ModHashes[indexInLocalHash].Hashes)
+                    {
+                        int index = NewHashes[indexInNewHash].Hashes.FindIndex(x => x.FileName == ht.FileName);
+                        if (index == -1)
+                        {
+                            // need to add a delete change
+                            ChangeList.Add(new Change(mfh.ModName.ModName + ht.FileName, ChangeAction.Delete));
+
+                        }
+                    }
                     foreach (HashType h in mfh.Hashes)
                     {
+                        
                         if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
                             // File exists both in the local hash and the remote hash
