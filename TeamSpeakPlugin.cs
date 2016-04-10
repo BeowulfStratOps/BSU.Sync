@@ -1,6 +1,6 @@
 ﻿using Microsoft.Win32;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     public static class TeamSpeakPlugin
     {
