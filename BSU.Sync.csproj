@@ -54,6 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArmA.cs" />
     <Compile Include="Change.cs" />
     <Compile Include="FileCopy.cs" />
     <Compile Include="FileReader.cs" />
