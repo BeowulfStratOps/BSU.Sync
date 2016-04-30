@@ -1,9 +1,14 @@
 ﻿using Microsoft.Win32;
+using NLog;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace BSU.Sync
 {
     public static class TeamSpeakPlugin
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         /// <summary>
         /// Determines if TeamSpeak is installed 
         /// </summary>
@@ -33,6 +38,32 @@ namespace BSU.Sync
             }
 
             return string.Empty;
+        }
+        /// <summary>
+        /// Gets a list of all mod folders which contain 
+        /// </summary>
+        /// <param name="Mods"></param>
+        /// <param name="LocalPath"></param>
+        /// <returns></returns>
+        public static List<ModFolder> GetModFoldersWithPlugins(List<ModFolder> Mods, string LocalPath)
+        {
+            List<ModFolder> returnList = new List<ModFolder>();
+
+            foreach (ModFolder m in Mods)
+            {
+                DirectoryInfo modPath = new DirectoryInfo(Path.Combine(LocalPath.ToString(), m.ModName.ToString()));
+                DirectoryInfo[] folders = modPath.GetDirectories();
+                if (folders.Any(x => x.FullName.Equals(Path.Combine(modPath.FullName, "plugins"))))
+                {
+                    DirectoryInfo modPluginFolder = new DirectoryInfo(Path.Combine(modPath.FullName, "plugins"));
+                    DirectoryInfo tsPluginFolder = new DirectoryInfo(Path.Combine(TeamSpeakPlugin.TeamSpeakPath(), "plugins"));
+
+                    logger.Trace("Plugins exists inside of {0}", modPath);
+                    returnList.Add(m);
+                }
+            }
+
+            return returnList;
         }
     }
 }
