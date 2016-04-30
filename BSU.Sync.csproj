@@ -68,7 +68,6 @@
     <Compile Include="Remote.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="TeamSpeakPlugin.cs" />
-    <Compile Include="UserconfigFolder.cs" />
     <Compile Include="ZsyncManager.cs" />
   </ItemGroup>
   <ItemGroup>
