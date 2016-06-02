@@ -23,7 +23,7 @@ namespace BSU.Sync
             {
                 using (SHA1Cng cryptoProvider = new SHA1Cng())
                 {
-                    using (BufferedStream bufferedStream = new BufferedStream(fileStream))
+                    using (BufferedStream bufferedStream = new BufferedStream(fileStream, 1000000))
                     {
                         logger.Trace("Hashing {0}", Filename);
                         return cryptoProvider.ComputeHash(bufferedStream);
