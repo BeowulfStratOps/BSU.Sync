@@ -82,20 +82,11 @@ namespace BSU.Sync
             List<ModFolderHash> Hashes = new List<ModFolderHash>(Mods.Count);
             foreach (ModFolder mod in Mods)
             {
-                Task t = Task.Factory.StartNew(() =>
-                {
-                    logger.Info("Hashing {0}", mod.ModName);
-                    List<HashType> hashes = Hash.HashFolder(LocalPath + @"\" + mod.ModName);
-                    Hashes.Add(new ModFolderHash(mod, hashes));
-                });
-                t.ContinueWith((pTask) =>
-                {
-                    logger.Info("Hashed {0}", mod.ModName);
-                });
-                taskList.Add(t);
-
+                logger.Info("Hashing {0}", mod.ModName);
+                List<HashType> hashes = Hash.HashFolder(LocalPath + @"\" + mod.ModName);
+                Hashes.Add(new ModFolderHash(mod, hashes));
+                logger.Info("Hashed {0}", mod.ModName);
             }
-            Task.WaitAll(taskList.ToArray());
             return Hashes;
         }
         public FileTypes.ServerFile GetServerFile()
