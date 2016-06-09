@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using NLog;
 
 namespace BSU.Sync
 {
     internal static class FileCopy
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         /// <summary>
         /// Copies all files from one folder to another, overwriting if the source file is newer
         /// </summary>
@@ -46,16 +48,27 @@ namespace BSU.Sync
         {
             foreach (FileInfo file in Target.GetFiles())
             {
-                if (!File.Exists(Path.Combine(Base.FullName, file.FullName.Replace(TargetBaseFolder.FullName, string.Empty).Substring(1))))
+                // Do not delete the control files, they never exist in the input folder and are quite useful.. 
+                if (Path.GetExtension(file.FullName) != ".zsync" && file.Name != "hash.json")
                 {
-                    File.Delete(Path.Combine(Target.FullName, file.Name));
-                    Console.WriteLine("Deleting {0}", Path.Combine(Target.FullName, file.Name));
+                    if (!File.Exists(Path.Combine(Base.FullName, file.FullName.Replace(TargetBaseFolder.FullName, string.Empty).Substring(1))))
+                    {
+                        File.Delete(Path.Combine(Target.FullName, file.Name));
+                        // Well actually on second thoughts, deleting the control is a good idea in some situations..
+                        if (File.Exists(Path.Combine(Target.FullName, file.Name) +  ".zsync"))
+                        {
+                            File.Delete(Path.Combine(Target.FullName, file.Name) + ".zsync");
+                        }
+                        logger.Info("Deleting {0}", Path.Combine(Target.FullName, file.Name));
+
+
+                    }
                 }
             }
             foreach (DirectoryInfo directory in Target.GetDirectories())
             {
                 DirectoryInfo NextBaseDirectory = new DirectoryInfo(Path.Combine(Base.FullName, directory.Name));
-                CleanUpFolder(NextBaseDirectory, new DirectoryInfo(Path.Combine(Base.FullName, directory.Name)), NextBaseDirectory);
+                CleanUpFolder(NextBaseDirectory, new DirectoryInfo(Path.Combine(TargetBaseFolder.FullName, directory.Name)), new DirectoryInfo(Path.Combine(TargetBaseFolder.FullName, directory.Name)));
             }
         }
     }
