@@ -53,13 +53,20 @@ namespace BSU.Sync
             {
                 DirectoryInfo modPath = new DirectoryInfo(Path.Combine(LocalPath.ToString(), m.ModName.ToString()));
                 DirectoryInfo[] folders = modPath.GetDirectories();
-                if (folders.Any(x => x.FullName.Equals(Path.Combine(modPath.FullName, "plugins"))))
+                List<string> pluginFolders = new List<string>();
+                pluginFolders.Add("plugins");
+                pluginFolders.Add("plugin");
+                // ^ Support for both TFAR and ACRE 
+                foreach (string folder in pluginFolders)
                 {
-                    DirectoryInfo modPluginFolder = new DirectoryInfo(Path.Combine(modPath.FullName, "plugins"));
-                    DirectoryInfo tsPluginFolder = new DirectoryInfo(Path.Combine(TeamSpeakPlugin.TeamSpeakPath(), "plugins"));
+                    if (folders.Any(x => x.FullName.Equals(Path.Combine(modPath.FullName, folder))))
+                    {
+                        DirectoryInfo modPluginFolder = new DirectoryInfo(Path.Combine(modPath.FullName, folder));
+                        DirectoryInfo tsPluginFolder = new DirectoryInfo(Path.Combine(TeamSpeakPlugin.TeamSpeakPath(), folder));
 
-                    logger.Trace("Plugins exists inside of {0}", modPath);
-                    returnList.Add(m);
+                        logger.Trace("Plugins exists inside of {0}", modPath);
+                        returnList.Add(m);
+                    }
                 }
             }
 
