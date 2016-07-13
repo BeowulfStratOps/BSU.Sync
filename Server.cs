@@ -36,13 +36,29 @@ namespace BSU.Sync
         Guid ServerGuid;
         List<Uri> SyncUris;
         
-        public void LoadFromWeb(Uri RemoteServerFile, DirectoryInfo LocalPath)
+        public bool LoadFromWeb(Uri RemoteServerFile, DirectoryInfo LocalPath)
         {
             logger.Info("Loading server from {0}, local path {1}", RemoteServerFile, LocalPath);
             this.LocalPath = LocalPath.ToString();
-            WebRequest request = WebRequest.CreateHttp(RemoteServerFile);
-            LoadServer(FileReader.ReadServerFileFromStream(request.GetResponse().GetResponseStream()), LocalPath.ToString());
-            ModHashes = HashAllMods();
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(RemoteServerFile);
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                ServerFile sf = FileReader.ReadServerFileFromStream(request.GetResponse().GetResponseStream());
+                if (sf == null)
+                {
+                    return false;
+                }
+                LoadServer(sf, this.LocalPath);
+                ModHashes = HashAllMods();
+            } 
+            catch (WebException we)
+            {
+                logger.Error((Exception)we, "Failed to load server json file");
+                return false;
+            }
+ 
+            return true;
         }
         public void CreateNewServer(string ServerName, string ServerAddress, string Password, int ServerPort, string LPath, string OutputPath, List<Uri> SyncUris)
         {
