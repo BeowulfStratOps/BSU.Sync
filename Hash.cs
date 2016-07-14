@@ -21,6 +21,14 @@ namespace BSU.Sync
             }
             using (FileStream fileStream = File.Open(Filename, FileMode.Open, FileAccess.Read))
             {
+                // As per T16, if the file is a PBO we just extract the pre-computed hash from the file
+                if (Path.GetExtension(Filename) == ".pbo" || Path.GetExtension(Filename) == ".ebo") // Adding ebo JUST in case there is ever a situation where they are shared
+                {
+                    byte[] array = new byte[20];
+                    fileStream.Seek(-20L, SeekOrigin.End);
+                    fileStream.Read(array, 0, 20);
+                    return array;
+                }
                 using (SHA1Cng cryptoProvider = new SHA1Cng())
                 {
                     using (BufferedStream bufferedStream = new BufferedStream(fileStream, 1000000))
@@ -28,6 +36,23 @@ namespace BSU.Sync
                         logger.Trace("Hashing {0}", Filename);
                         return cryptoProvider.ComputeHash(bufferedStream);
                     }
+                }
+            }
+        }
+        /// <summary>
+        /// Computes a PBO's hash (by removing the last 21 bytes). May be used for verification
+        /// </summary>
+        /// <param name="Filename"></param>
+        /// <returns></returns>
+        public static byte[] ComputePBOHash(string Filename)
+        {
+            using (FileStream fileStream = File.Open(Filename, FileMode.Open, FileAccess.Read))
+            {
+                using (SHA1Cng cryptoProvider = new SHA1Cng())
+                {
+                    byte[] array = new byte[fileStream.Length - 21];
+                    fileStream.Read(array, 0, (int)fileStream.Length - 21);
+                    return cryptoProvider.ComputeHash(array);
                 }
             }
         }
