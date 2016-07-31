@@ -8,6 +8,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using NLog;
+using BSO.Sync;
 
 namespace BSU.Sync
 {
@@ -21,8 +22,32 @@ namespace BSU.Sync
             this.Hashes = Hashes;
         }
     }
+
     public class Server
     {
+
+        public delegate void ProgressUpdateEventHandler(object sender, ProgressUpdateEventArguments e);
+        public delegate void FetchProgressUpdateEventHandler(object sender, ProgressUpdateEventArguments e);
+
+        public event ProgressUpdateEventHandler progressUpdateEvent;
+        public event FetchProgressUpdateEventHandler fetchProgessUpdateEvent;
+
+        protected virtual void OnProgressUpdateEvent(ProgressUpdateEventArguments e)
+        {
+            if (progressUpdateEvent != null)
+            {
+                progressUpdateEvent(this, e);
+            }
+        }
+
+        protected virtual void OnFetchProgressUpdateEvent(ProgressUpdateEventArguments e)
+        {
+            if (fetchProgessUpdateEvent != null)
+            {
+                fetchProgessUpdateEvent(this, e);
+            }
+        }
+
         private Logger logger = LogManager.GetCurrentClassLogger();
         string LocalPath;
         string ServerName;
@@ -35,11 +60,14 @@ namespace BSU.Sync
         List<ModFolderHash> ModHashes;
         Guid ServerGuid;
         List<Uri> SyncUris;
-        
+
         public bool LoadFromWeb(Uri RemoteServerFile, DirectoryInfo LocalPath)
         {
             logger.Info("Loading server from {0}, local path {1}", RemoteServerFile, LocalPath);
             this.LocalPath = LocalPath.ToString();
+
+            OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 0 });
+
             try
             {
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(RemoteServerFile);
@@ -49,15 +77,17 @@ namespace BSU.Sync
                 {
                     return false;
                 }
+                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 5 });
                 LoadServer(sf, this.LocalPath);
+                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
                 ModHashes = HashAllMods();
-            } 
+            }
             catch (WebException we)
             {
                 logger.Error((Exception)we, "Failed to load server json file");
                 return false;
             }
- 
+
             return true;
         }
         public void CreateNewServer(string ServerName, string ServerAddress, string Password, int ServerPort, string LPath, string OutputPath, List<Uri> SyncUris)
@@ -96,18 +126,29 @@ namespace BSU.Sync
             logger.Info("Hashing all mods");
             List<Task> taskList = new List<Task>();
             List<ModFolderHash> Hashes = new List<ModFolderHash>(Mods.Count);
+
+            int currentModNumber = 1;
+            int perc = 90;
+            if (Mods.Count > 0)
+            {
+                perc = (int)((90d / (double)Mods.Count) * currentModNumber);
+            } 
             foreach (ModFolder mod in Mods)
             {
                 logger.Info("Hashing {0}", mod.ModName);
                 List<HashType> hashes = Hash.HashFolder(LocalPath + @"\" + mod.ModName);
                 Hashes.Add(new ModFolderHash(mod, hashes));
                 logger.Info("Hashed {0}", mod.ModName);
+                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
+                currentModNumber++;
+                perc = (int)((90d / (double)Mods.Count) * currentModNumber);
             }
+            OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 100 });
             return Hashes;
         }
         public FileTypes.ServerFile GetServerFile()
         {
-            return new FileTypes.ServerFile(ServerName, ServerAddress, ServerPort, Password, Mods,LastUpdate,CreationDate,ServerGuid,SyncUris);
+            return new FileTypes.ServerFile(ServerName, ServerAddress, ServerPort, Password, Mods, LastUpdate, CreationDate, ServerGuid, SyncUris);
         }
         public void LoadServer(FileTypes.ServerFile sf, string LocalPath)
         {
@@ -131,7 +172,7 @@ namespace BSU.Sync
             FileCopy.CleanUpFolder(InputDirectory, new DirectoryInfo(LocalPath), new DirectoryInfo(LocalPath));
             // TODO: Maybe remove all zsync files?
             ModHashes = HashAllMods();
-            foreach (string f in Directory.EnumerateFiles(LocalPath,"*",SearchOption.AllDirectories).Where(name => !name.EndsWith(".zsync")))
+            foreach (string f in Directory.EnumerateFiles(LocalPath, "*", SearchOption.AllDirectories).Where(name => !name.EndsWith(".zsync")))
             {
                 ZsyncManager.Make(f);
             }
@@ -148,8 +189,20 @@ namespace BSU.Sync
         }
         public void FetchChanges(DirectoryInfo BaseDirectory, List<ModFolderHash> NewHashes)
         {
+            OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
+
             List<Change> Changes = GenerateChangeList(NewHashes);
             List<Task> tasks = new List<Task>();
+
+            // Allocated 80% for this task (10%-90%)
+            int completedTasks = 0;
+            int perc = 90;
+            if (Changes.Count > 0)
+            {
+                perc = (int)((80d / (double)Changes.Count) * completedTasks);
+            }
+            OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
+            OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = completedTasks, MaximumValue = Changes.Count });
             foreach (Change c in Changes)
             {
                 if (c.Action == ChangeAction.Acquire)
@@ -170,7 +223,7 @@ namespace BSU.Sync
                             */
                             while (tasks.Count > 5)
                             {
-
+                                Thread.Sleep(100);
                             }
                             Task t = Task.Factory.StartNew(() => {
                                 //Console.WriteLine("Starting");
@@ -179,7 +232,11 @@ namespace BSU.Sync
                             t.ContinueWith((prevTask) => {
                                 //Console.WriteLine("Ending");
                                 tasks.Remove(t);
-                            } );
+                                completedTasks++;
+                                perc = (int)((80d / (double)Changes.Count) * completedTasks);
+                                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
+                                OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = completedTasks, MaximumValue = Changes.Count });
+                            });
                             tasks.Add(t);
                             //Console.WriteLine("Created task for {0}", c.FilePath);
 
