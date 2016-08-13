@@ -82,6 +82,10 @@ namespace BSO.Sync
                             else 
                             {
                                 // Only copy it if its different
+                                if (!FileEquals(new FileInfo(Path.Combine(possibleKeyFolder.ToString(), f.Name)), new FileInfo(Path.Combine(ArmAKeysFolder.FullName, f.Name))))
+                                {
+                                    File.Copy(Path.Combine(possibleKeyFolder.ToString(), f.Name), Path.Combine(ArmAKeysFolder.FullName, f.Name));
+                                }
                                 
                             }
                         }
