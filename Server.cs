@@ -187,16 +187,26 @@ namespace BSU.Sync
         {
             return Mods;
         }
-        public void FetchChanges(DirectoryInfo BaseDirectory, List<ModFolderHash> NewHashes)
+        /// <summary>
+        /// Fetches changes
+        /// </summary>
+        /// <param name="BaseDirectory">Directory to download mods to</param>
+        /// <param name="NewHashes">NewHashes to process</param>
+        /// <returns>Number of changes that failed, 0 if none</returns>
+        /// <remarks>If return > 0 then the process should be re-run</remarks>
+        public int FetchChanges(DirectoryInfo BaseDirectory, List<ModFolderHash> NewHashes)
         {
             OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
 
+            List<Change> FailedChanges = new List<Change>();
+            
             List<Change> Changes = GenerateChangeList(NewHashes);
             List<Task> tasks = new List<Task>();
 
             // Allocated 80% for this task (10%-90%)
             int completedTasks = 0;
             int perc = 90;
+            bool success = true;
             if (Changes.Count > 0)
             {
                 perc = (int)((80d / (double)Changes.Count) * completedTasks);
@@ -214,6 +224,7 @@ namespace BSU.Sync
                         Uri reqUri = new Uri(SyncUris[0], c.FilePath + ".zsync");
                         try
                         {
+                            success = true;
                             //ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
                             /*
                             if (tasks.Count > 5)
@@ -227,28 +238,38 @@ namespace BSU.Sync
                             }
                             Task t = Task.Factory.StartNew(() => {
                                 //Console.WriteLine("Starting");
-                                ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                                try
+                                {
+                                    ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                                }
+                                catch (Exception ex)
+                                {
+                                    success = false;
+                                    FailedChanges.Add(c);
+                                    logger.Error(ex, "Failed to acquire file {0}", c.FilePath);
+                                }
                             });
                             t.ContinueWith((prevTask) => {
                                 //Console.WriteLine("Ending");
                                 tasks.Remove(t);
-                                completedTasks++;
-                                perc = (int)((80d / (double)Changes.Count) * completedTasks);
-                                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
-                                OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = completedTasks, MaximumValue = Changes.Count });
+                                if (success)
+                                {
+                                    completedTasks++;
+                                    perc = (int) ((80d/(double) Changes.Count)*completedTasks);
+                                    OnProgressUpdateEvent(new ProgressUpdateEventArguments() {ProgressValue = 10 + perc});
+                                    OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments()
+                                    {
+                                        ProgressValue = completedTasks,
+                                        MaximumValue = Changes.Count
+                                    });
+                                }
                             });
                             tasks.Add(t);
-                            //Console.WriteLine("Created task for {0}", c.FilePath);
 
                         }
                         catch (Exception ex)
                         {
-                            if (ex is com.salesforce.zsync.ZsyncChecksumValidationFailedException)
-                            {
-                                logger.Error(ex, "Checksum Validation failed for {0}", c.FilePath);
-                            }
-                            // TODO: Add to a reacquire list and log the error
-                            logger.Error(ex, "Failed to acquire file {0}", c.FilePath);
+                            logger.Error(ex);
                         }
                     }
 
@@ -265,8 +286,15 @@ namespace BSU.Sync
                 }
             }
             Task.WaitAll(tasks.ToArray());
-            
-            
+            if (FailedChanges.Count() != 0)
+            {
+                // Failed to acquire at least one file
+                logger.Error("Failed to complete {0}/{1} changes", FailedChanges.Count(), Changes.Count());
+                
+            }
+            return FailedChanges.Count();
+
+
         }
         public List<Change> GenerateChangeList(List<ModFolderHash> NewHashes)
         {

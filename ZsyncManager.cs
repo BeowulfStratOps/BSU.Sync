@@ -58,9 +58,10 @@ namespace BSU.Sync
                 }
                 else
                 {
-                    Console.WriteLine("Something failed \n {0} ", ex.Message);
-                    Console.WriteLine("\t {0}", ControlFileString);
-                    logger.Warn(ex, "Error");
+                    throw ex;
+                    //Console.WriteLine("Something failed \n {0} ", ex.Message);
+                    //Console.WriteLine("\t {0}", ControlFileString);
+                    //logger.Warn(ex, "Error");
                 }
 
             }
