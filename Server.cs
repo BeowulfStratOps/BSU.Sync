@@ -248,6 +248,7 @@ namespace BSU.Sync
                                 logger.Error(ex, "Checksum Validation failed for {0}", c.FilePath);
                             }
                             // TODO: Add to a reacquire list and log the error
+                            logger.Error(ex, "Failed to acquire file {0}", c.FilePath);
                         }
                     }
 
