@@ -8,7 +8,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using NLog;
-using BSO.Sync;
+using BSU.Sync;
 
 namespace BSU.Sync
 {

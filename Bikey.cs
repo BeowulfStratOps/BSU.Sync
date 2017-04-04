@@ -1,13 +1,9 @@
-﻿using BSU.Sync;
-using NLog;
-using System;
+﻿using NLog;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     public class Bikey
     {

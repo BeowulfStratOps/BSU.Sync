@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BSO.Sync
+namespace BSU.Sync
 {
     public class ProgressUpdateEventArguments : EventArgs
     {
