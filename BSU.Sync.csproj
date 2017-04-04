@@ -7,8 +7,8 @@
     <ProjectGuid>{9379C93A-A9FF-4653-8CAC-D082E256F879}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BSO.Sync</RootNamespace>
-    <AssemblyName>BSO.Sync</AssemblyName>
+    <RootNamespace>BSU.Sync</RootNamespace>
+    <AssemblyName>BSU.Sync</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
