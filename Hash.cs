@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Security.Cryptography;
 using BSU.Sync.FileTypes;
@@ -12,17 +10,17 @@ namespace BSU.Sync
 {
     public static class Hash
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-        public static byte[] GetFileHash(string Filename)
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        public static byte[] GetFileHash(string filename)
         {
-            if (!File.Exists(Filename))
+            if (!File.Exists(filename))
             {
-                throw new FileNotFoundException("File not found", Filename);
+                throw new FileNotFoundException("File not found", filename);
             }
-            using (FileStream fileStream = File.Open(Filename, FileMode.Open, FileAccess.Read))
+            using (FileStream fileStream = File.Open(filename, FileMode.Open, FileAccess.Read))
             {
                 // As per T16, if the file is a PBO we just extract the pre-computed hash from the file
-                if (Path.GetExtension(Filename) == ".pbo" || Path.GetExtension(Filename) == ".ebo") // Adding ebo JUST in case there is ever a situation where they are shared
+                if (Path.GetExtension(filename) == ".pbo" || Path.GetExtension(filename) == ".ebo") // Adding ebo JUST in case there is ever a situation where they are shared
                 {
                     byte[] array = new byte[20];
                     fileStream.Seek(-20L, SeekOrigin.End);
@@ -33,7 +31,7 @@ namespace BSU.Sync
                 {
                     using (BufferedStream bufferedStream = new BufferedStream(fileStream, 1000000))
                     {
-                        logger.Trace("Hashing {0}", Filename);
+                        Logger.Trace("Hashing {0}", filename);
                         return cryptoProvider.ComputeHash(bufferedStream);
                     }
                 }
@@ -42,11 +40,11 @@ namespace BSU.Sync
         /// <summary>
         /// Computes a PBO's hash (by removing the last 21 bytes). May be used for verification
         /// </summary>
-        /// <param name="Filename"></param>
+        /// <param name="filename"></param>
         /// <returns></returns>
-        public static byte[] ComputePBOHash(string Filename)
+        public static byte[] ComputePboHash(string filename)
         {
-            using (FileStream fileStream = File.Open(Filename, FileMode.Open, FileAccess.Read))
+            using (FileStream fileStream = File.Open(filename, FileMode.Open, FileAccess.Read))
             {
                 using (SHA1Cng cryptoProvider = new SHA1Cng())
                 {
@@ -56,24 +54,15 @@ namespace BSU.Sync
                 }
             }
         }
-        public static List<HashType> HashFolder(string Dir)
+        public static List<HashType> HashFolder(string dir)
         {
-			if (System.Environment.OSVersion.Platform == PlatformID.Unix) 
+			if (Environment.OSVersion.Platform == PlatformID.Unix) 
 			{
-				Dir = Dir.Replace (@"\", string.Empty);
+				dir = dir.Replace (@"\", string.Empty);
 			}
-            List<HashType> hashes = new List<HashType>();
-            if (Directory.Exists(Dir))
-            {
-                foreach (string file in Directory.EnumerateFiles(Dir, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".zsync")))
-                {
-                    if (!file.EndsWith("hash.json") && !file.EndsWith("server.json")) // Lets not hash the control files
-                    {
-                        byte[] hash = GetFileHash(file);
-                        hashes.Add(new HashType(file.Replace(Dir, string.Empty), hash));
-                    }
-                }
-            }
+            var hashes = new List<HashType>();
+            if (!Directory.Exists(dir)) return hashes;
+            hashes.AddRange(from file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".zsync")) where !file.EndsWith("hash.json") && !file.EndsWith("server.json") let hash = GetFileHash(file) select new HashType(file.Replace(dir, string.Empty), hash));
             return hashes;
         }
     }

@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BSU.Sync
+﻿namespace BSU.Sync
 {
     public class ModFolder
     {
         public string ModName { get; set; }
-        public ModFolder(string ModName)
+        public ModFolder(string modName)
         {
-            this.ModName = ModName;
+            ModName = modName;
         }
         public ModFolder()
         {

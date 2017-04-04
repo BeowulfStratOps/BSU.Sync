@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using BSU.Sync.FileTypes;
@@ -12,26 +8,24 @@ namespace BSU.Sync
 {
     internal static class FileWriter
     {
-        internal static void WriteServerConfig(FileTypes.ServerFile ServerFile, FileInfo OutputFile)
+        internal static void WriteServerConfig(FileTypes.ServerFile serverFile, FileInfo outputFile)
         {
  
-            using (TextWriter writer = new StreamWriter(new FileStream(OutputFile.FullName, FileMode.Create)))
+            using (TextWriter writer = new StreamWriter(new FileStream(outputFile.FullName, FileMode.Create)))
             {
-                JsonSerializer js = new JsonSerializer();
-                js.Formatting = Formatting.Indented;
-                js.Serialize(writer, ServerFile);
+                var js = new JsonSerializer {Formatting = Formatting.Indented};
+                js.Serialize(writer, serverFile);
                 writer.Flush();
             }
         }
-        internal static void WriteModHashes(List<ModFolderHash> ModHashes, DirectoryInfo BaseDirectory)
+        internal static void WriteModHashes(List<ModFolderHash> modHashes, DirectoryInfo baseDirectory)
         {
-            foreach (ModFolderHash mfh in ModHashes)
+            foreach (ModFolderHash mfh in modHashes)
             {
-                HashFile hf = new HashFile(mfh.ModName.ModName, mfh.Hashes);
-                using (TextWriter writer = new StreamWriter(new FileStream(Path.Combine(BaseDirectory.FullName,mfh.ModName.ModName,"hash.json"), FileMode.Create)))
+                var hf = new HashFile(mfh.ModName.ModName, mfh.Hashes);
+                using (TextWriter writer = new StreamWriter(new FileStream(Path.Combine(baseDirectory.FullName,mfh.ModName.ModName,"hash.json"), FileMode.Create)))
                 {
-                    JsonSerializer js = new JsonSerializer();
-                    js.Formatting = Formatting.Indented;
+                    var js = new JsonSerializer {Formatting = Formatting.Indented};
                     js.Serialize(writer, hf);
                     writer.Flush();
                 }

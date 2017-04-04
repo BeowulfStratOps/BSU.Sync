@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using BSU.Sync.FileTypes;
 using System.IO;
 using System.Net;
 using System.Threading;
 using NLog;
-using BSU.Sync;
 
 namespace BSU.Sync
 {
@@ -16,10 +14,10 @@ namespace BSU.Sync
     {
         internal ModFolder ModName;
         internal List<HashType> Hashes;
-        internal ModFolderHash(ModFolder ModName, List<HashType> Hashes)
+        internal ModFolderHash(ModFolder modName, List<HashType> hashes)
         {
-            this.ModName = ModName;
-            this.Hashes = Hashes;
+            ModName = modName;
+            Hashes = hashes;
         }
     }
 
@@ -29,154 +27,153 @@ namespace BSU.Sync
         public delegate void ProgressUpdateEventHandler(object sender, ProgressUpdateEventArguments e);
         public delegate void FetchProgressUpdateEventHandler(object sender, ProgressUpdateEventArguments e);
 
-        public event ProgressUpdateEventHandler progressUpdateEvent;
-        public event FetchProgressUpdateEventHandler fetchProgessUpdateEvent;
+        public event ProgressUpdateEventHandler ProgressUpdateEvent;
+        public event FetchProgressUpdateEventHandler FetchProgessUpdateEvent;
 
         protected virtual void OnProgressUpdateEvent(ProgressUpdateEventArguments e)
         {
-            if (progressUpdateEvent != null)
-            {
-                progressUpdateEvent(this, e);
-            }
+            ProgressUpdateEvent?.Invoke(this, e);
         }
 
         protected virtual void OnFetchProgressUpdateEvent(ProgressUpdateEventArguments e)
         {
-            if (fetchProgessUpdateEvent != null)
-            {
-                fetchProgessUpdateEvent(this, e);
-            }
+            FetchProgessUpdateEvent?.Invoke(this, e);
         }
 
-        private Logger logger = LogManager.GetCurrentClassLogger();
-        string LocalPath;
-        string ServerName;
-        string ServerAddress;
-        int ServerPort;
-        string Password;
-        List<ModFolder> Mods;
-        DateTime CreationDate;
-        DateTime LastUpdate;
-        List<ModFolderHash> ModHashes;
-        Guid ServerGuid;
-        List<Uri> SyncUris;
+        private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+        string _localPath;
+        string _serverName;
+        string _serverAddress;
+        int _serverPort;
+        string _password;
+        List<ModFolder> _mods;
+        DateTime _creationDate;
+        DateTime _lastUpdate;
+        List<ModFolderHash> _modHashes;
+        Guid _serverGuid;
+        List<Uri> _syncUris;
 
-        public bool LoadFromWeb(Uri RemoteServerFile, DirectoryInfo LocalPath)
+        public bool LoadFromWeb(Uri remoteServerFile, DirectoryInfo localPath)
         {
-            logger.Info("Loading server from {0}, local path {1}", RemoteServerFile, LocalPath);
-            this.LocalPath = LocalPath.ToString();
+            _logger.Info("Loading server from {0}, local path {1}", remoteServerFile, localPath);
+            _localPath = localPath.ToString();
 
             OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 0 });
 
             try
             {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(RemoteServerFile);
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                var request = (HttpWebRequest)WebRequest.Create(remoteServerFile);
+                //var response = (HttpWebResponse)request.GetResponse();
                 ServerFile sf = FileReader.ReadServerFileFromStream(request.GetResponse().GetResponseStream());
                 if (sf == null)
                 {
                     return false;
                 }
                 OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 5 });
-                LoadServer(sf, this.LocalPath);
+                LoadServer(sf, _localPath);
                 OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
-                ModHashes = HashAllMods();
+                _modHashes = HashAllMods;
             }
             catch (WebException we)
             {
-                logger.Error((Exception)we, "Failed to load server json file");
+                _logger.Error(we, "Failed to load server json file");
                 return false;
             }
 
             return true;
         }
-        public void CreateNewServer(string ServerName, string ServerAddress, string Password, int ServerPort, string LPath, string OutputPath, List<Uri> SyncUris)
+        public void CreateNewServer(string serverName, string serverAddress, string password, int serverPort, string lPath, string outputPath, List<Uri> syncUris)
         {
-            logger.Info("Creating new server: ServerName {0}, ServerAddress {1}, Password {2}, ServerPort {3}, LPath {4}, OutputPath {5}, SyncUri[0] {6}", ServerName, ServerAddress, Password, ServerPort, LPath, OutputPath, SyncUris[0]);
-            this.ServerAddress = ServerAddress;
-            this.ServerName = ServerName;
-            this.ServerPort = ServerPort;
-            this.Password = Password;
-            this.SyncUris = SyncUris;
-            CreationDate = DateTime.Now;
-            LastUpdate = DateTime.Now;
-            ServerGuid = Guid.NewGuid();
-            LocalPath = OutputPath;
-            this.SyncUris = SyncUris;
-            UpdateServer(new DirectoryInfo(LPath));
+            _logger.Info("Creating new server: ServerName {0}, ServerAddress {1}, Password {2}, ServerPort {3}, LPath {4}, OutputPath {5}, SyncUri[0] {6}", serverName, serverAddress, password, serverPort, lPath, outputPath, syncUris[0]);
+            _serverAddress = serverAddress;
+            _serverName = serverName;
+            _serverPort = serverPort;
+            _password = password;
+            _syncUris = syncUris;
+            _creationDate = DateTime.Now;
+            _lastUpdate = DateTime.Now;
+            _serverGuid = Guid.NewGuid();
+            _localPath = outputPath;
+            _syncUris = syncUris;
+            UpdateServer(new DirectoryInfo(lPath));
 
         }
-        List<ModFolder> GetFolders()
+        // ReSharper disable once UnusedMember.Local
+        public List<ModFolder> GetFolders()
         {
-            return GetFolders(new DirectoryInfo(LocalPath));
+            return GetFolders(new DirectoryInfo(_localPath));
         }
-        List<ModFolder> GetFolders(DirectoryInfo FilePath)
+        public List<ModFolder> GetFolders(DirectoryInfo filePath)
         {
-            logger.Info("Finding folders");
-            List<ModFolder> returnList = new List<ModFolder>();
-            foreach (string d in Directory.GetDirectories(FilePath.FullName))
+            _logger.Info("Finding folders");
+            var returnList = new List<ModFolder>();
+            foreach (string d in Directory.GetDirectories(filePath.FullName))
             {
-                logger.Info("Found folder {0}", d.Replace(FilePath.FullName, string.Empty).Replace(@"\", string.Empty));
-                returnList.Add(new ModFolder(d.Replace(FilePath.FullName, string.Empty).Replace(@"\", string.Empty)));
+                _logger.Info("Found folder {0}", d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty));
+                returnList.Add(new ModFolder(d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty)));
             }
             return returnList;
         }
-        List<ModFolderHash> HashAllMods()
+        public List<ModFolderHash> HashAllMods
         {
-            logger.Info("Hashing all mods");
-            List<Task> taskList = new List<Task>();
-            List<ModFolderHash> Hashes = new List<ModFolderHash>(Mods.Count);
+            get
+            {
+                _logger.Info("Hashing all mods");
+                //var taskList = new List<Task>();
+                var returnHashes = new List<ModFolderHash>(_mods.Count);
 
-            int currentModNumber = 1;
-            int perc = 90;
-            if (Mods.Count > 0)
-            {
-                perc = (int)((90d / (double)Mods.Count) * currentModNumber);
-            } 
-            foreach (ModFolder mod in Mods)
-            {
-                logger.Info("Hashing {0}", mod.ModName);
-                List<HashType> hashes = Hash.HashFolder(LocalPath + @"\" + mod.ModName);
-                Hashes.Add(new ModFolderHash(mod, hashes));
-                logger.Info("Hashed {0}", mod.ModName);
-                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
-                currentModNumber++;
-                perc = (int)((90d / (double)Mods.Count) * currentModNumber);
+                int currentModNumber = 1;
+                int perc = 90;
+                if (_mods.Count > 0)
+                {
+                    perc = (int)((90d / _mods.Count) * currentModNumber);
+                }
+                foreach (ModFolder mod in _mods)
+                {
+                    _logger.Info("Hashing {0}", mod.ModName);
+                    List<HashType> hashes = Hash.HashFolder(_localPath + @"\" + mod.ModName);
+                    returnHashes.Add(new ModFolderHash(mod, hashes));
+                    _logger.Info("Hashed {0}", mod.ModName);
+                    OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
+                    currentModNumber++;
+                    perc = (int)((90d / _mods.Count) * currentModNumber);
+                }
+                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 100 });
+                return returnHashes;
             }
-            OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 100 });
-            return Hashes;
         }
-        public FileTypes.ServerFile GetServerFile()
+
+        public ServerFile GetServerFile()
         {
-            return new FileTypes.ServerFile(ServerName, ServerAddress, ServerPort, Password, Mods, LastUpdate, CreationDate, ServerGuid, SyncUris);
+            return new ServerFile(_serverName, _serverAddress, _serverPort, _password, _mods, _lastUpdate, _creationDate, _serverGuid, _syncUris);
         }
-        public void LoadServer(FileTypes.ServerFile sf, string LocalPath)
+        public void LoadServer(ServerFile sf, string localPath)
         {
-            this.LocalPath = LocalPath;
-            ServerName = sf.ServerName;
-            ServerAddress = sf.ServerAddress;
-            ServerPort = sf.ServerPort;
-            Password = sf.Password;
-            Mods = sf.ModFolders;
-            LastUpdate = sf.LastUpdateDate;
-            CreationDate = sf.CreationDate;
-            ServerGuid = sf.ServerGUID;
-            SyncUris = sf.SyncUris;
+            _localPath = localPath;
+            _serverName = sf.ServerName;
+            _serverAddress = sf.ServerAddress;
+            _serverPort = sf.ServerPort;
+            _password = sf.Password;
+            _mods = sf.ModFolders;
+            _lastUpdate = sf.LastUpdateDate;
+            _creationDate = sf.CreationDate;
+            _serverGuid = sf.ServerGuid;
+            _syncUris = sf.SyncUris;
         }
-        public void UpdateServer(DirectoryInfo InputDirectory)
+        public void UpdateServer(DirectoryInfo inputDirectory)
         {
-            LastUpdate = DateTime.Now;
-            Mods = GetFolders(InputDirectory);
-            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(InputDirectory.FullName, "server.json")));
-            FileCopy.CopyAll(InputDirectory, new DirectoryInfo(LocalPath));
-            FileCopy.CleanUpFolder(InputDirectory, new DirectoryInfo(LocalPath), new DirectoryInfo(LocalPath));
+            _lastUpdate = DateTime.Now;
+            _mods = GetFolders(inputDirectory);
+            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(inputDirectory.FullName, "server.json")));
+            FileCopy.CopyAll(inputDirectory, new DirectoryInfo(_localPath));
+            FileCopy.CleanUpFolder(inputDirectory, new DirectoryInfo(_localPath), new DirectoryInfo(_localPath));
             // TODO: Maybe remove all zsync files?
-            ModHashes = HashAllMods();
-            foreach (string f in Directory.EnumerateFiles(LocalPath, "*", SearchOption.AllDirectories).Where(name => !name.EndsWith(".zsync")))
+            _modHashes = HashAllMods;
+            foreach (string f in Directory.EnumerateFiles(_localPath, "*", SearchOption.AllDirectories).Where(name => !name.EndsWith(".zsync")))
             {
                 ZsyncManager.Make(f);
             }
-            FileWriter.WriteModHashes(ModHashes, new DirectoryInfo(LocalPath));
+            FileWriter.WriteModHashes(_modHashes, new DirectoryInfo(_localPath));
 
         }
         /// <summary>
@@ -185,221 +182,223 @@ namespace BSU.Sync
         /// <returns></returns>
         public List<ModFolder> GetLoadedMods()
         {
-            return Mods;
+            return _mods;
         }
         /// <summary>
         /// Fetches changes
         /// </summary>
-        /// <param name="BaseDirectory">Directory to download mods to</param>
-        /// <param name="NewHashes">NewHashes to process</param>
+        /// <param name="baseDirectory">Directory to download mods to</param>
+        /// <param name="newHashes">NewHashes to process</param>
         /// <returns>Number of changes that failed, 0 if none</returns>
         /// <remarks>If return > 0 then the process should be re-run</remarks>
-        public int FetchChanges(DirectoryInfo BaseDirectory, List<ModFolderHash> NewHashes)
+        public int FetchChanges(DirectoryInfo baseDirectory, List<ModFolderHash> newHashes)
         {
             OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
 
-            List<Change> FailedChanges = new List<Change>();
+            var failedChanges = new List<Change>();
             
-            List<Change> Changes = GenerateChangeList(NewHashes);
-            List<Task> tasks = new List<Task>();
+            List<Change> changes = GenerateChangeList(newHashes);
+            var tasks = new List<Task>();
 
             // Allocated 80% for this task (10%-90%)
-            int completedTasks = 0;
-            int perc = 90;
-            bool success = true;
-            if (Changes.Count > 0)
+            var completedTasks = 0;
+            var perc = 90;
+            var success = true;
+            if (changes.Count > 0)
             {
-                perc = (int)((80d / (double)Changes.Count) * completedTasks);
+                perc = (int)((80d / changes.Count) * completedTasks);
             }
             OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
-            OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = completedTasks, MaximumValue = Changes.Count });
-            foreach (Change c in Changes)
+            OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = completedTasks, MaximumValue = changes.Count });
+            foreach (Change c in changes)
             {
-                if (c.Action == ChangeAction.Acquire)
+                switch (c.Action)
                 {
-                    //Changes.Remove(c);
-                    if (c.FilePath != "server.json")
-                    {
-                        //Console.WriteLine("Getting {0}",c.FilePath);
-                        Uri reqUri = new Uri(SyncUris[0], c.FilePath + ".zsync");
-                        try
+                    case ChangeAction.Acquire:
+                        //Changes.Remove(c);
+                        if (c.FilePath != "server.json")
                         {
-                            success = true;
-                            //ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
-                            /*
+                            //Console.WriteLine("Getting {0}",c.FilePath);
+                            var reqUri = new Uri(_syncUris[0], c.FilePath + ".zsync");
+                            try
+                            {
+                                success = true;
+                                //ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                                /*
                             if (tasks.Count > 5)
                             { 
                                 Task.WaitAll(tasks.ToArray());
                             }
                             */
-                            while (tasks.Count > 5)
-                            {
-                                Thread.Sleep(100);
-                            }
-                            Task t = Task.Factory.StartNew(() => {
-                                //Console.WriteLine("Starting");
-                                try
+                                while (tasks.Count > 5)
                                 {
-                                    ZsyncManager.ZsyncDownload(reqUri, BaseDirectory.ToString(), c.FilePath);
+                                    Thread.Sleep(100);
                                 }
-                                catch (Exception ex)
-                                {
-                                    success = false;
-                                    FailedChanges.Add(c);
-                                    logger.Error(ex, "Failed to acquire file {0}", c.FilePath);
-                                }
-                            });
-                            t.ContinueWith((prevTask) => {
-                                //Console.WriteLine("Ending");
-                                tasks.Remove(t);
-                                if (success)
-                                {
+                                Task t = Task.Factory.StartNew(() => {
+                                    //Console.WriteLine("Starting");
+                                    try
+                                    {
+                                        ZsyncManager.ZsyncDownload(reqUri, baseDirectory.ToString(), c.FilePath);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        success = false;
+                                        failedChanges.Add(c);
+                                        _logger.Error(ex, "Failed to acquire file {0}", c.FilePath);
+                                    }
+                                });
+                                t.ContinueWith((prevTask) => {
+                                    //Console.WriteLine("Ending");
+                                    tasks.Remove(t);
+                                    if (!success) return;
                                     completedTasks++;
-                                    perc = (int) ((80d/(double) Changes.Count)*completedTasks);
+                                    perc = (int) ((80d/changes.Count)*completedTasks);
                                     OnProgressUpdateEvent(new ProgressUpdateEventArguments() {ProgressValue = 10 + perc});
                                     OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments()
                                     {
                                         ProgressValue = completedTasks,
-                                        MaximumValue = Changes.Count
+                                        MaximumValue = changes.Count
                                     });
-                                }
-                            });
-                            tasks.Add(t);
+                                });
+                                tasks.Add(t);
 
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error(ex);
+                            }
                         }
-                        catch (Exception ex)
+                        break;
+                    case ChangeAction.Delete:
+                        _logger.Info("Deleting {0}", Path.Combine(baseDirectory.ToString(), c.FilePath));
+                        if (File.Exists(Path.Combine(baseDirectory.ToString(), c.FilePath)))
                         {
-                            logger.Error(ex);
+                            File.Delete(Path.Combine(baseDirectory.ToString(), c.FilePath));
+                            Console.WriteLine(Path.Combine(baseDirectory.ToString(), c.FilePath));
                         }
-                    }
-
-                }
-                else if (c.Action == ChangeAction.Delete)
-                {
-                    logger.Info("Deleting {0}", Path.Combine(BaseDirectory.ToString(), c.FilePath));
-                    if (File.Exists(Path.Combine(BaseDirectory.ToString(), c.FilePath)))
-                    {
-                        File.Delete(Path.Combine(BaseDirectory.ToString(), c.FilePath));
-                        Console.WriteLine(Path.Combine(BaseDirectory.ToString(), c.FilePath));
-                    }
-                    //Changes.Remove(c);
+                        //Changes.Remove(c);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
             Task.WaitAll(tasks.ToArray());
-            if (FailedChanges.Count() != 0)
+            if (failedChanges.Count() != 0)
             {
                 // Failed to acquire at least one file
-                logger.Error("Failed to complete {0}/{1} changes", FailedChanges.Count(), Changes.Count());
+                _logger.Error("Failed to complete {0}/{1} changes", failedChanges.Count(), changes.Count());
                 
             }
-            return FailedChanges.Count();
+            return failedChanges.Count();
 
 
         }
-        public List<Change> GenerateChangeList(List<ModFolderHash> NewHashes)
+        public List<Change> GenerateChangeList(List<ModFolderHash> newHashes)
         {
-            List<Change> ChangeList = new List<Change>();
-            foreach (ModFolderHash mfh in NewHashes)
+            var changeList = new List<Change>();
+            foreach (ModFolderHash mfh in newHashes)
             {
-                if (!ModHashes.Exists(x => x.ModName.ModName == mfh.ModName.ModName))
+                if (!_modHashes.Exists(x => x.ModName.ModName == mfh.ModName.ModName))
                 {
                     // If the entire mod doesn't exist, add it all
                     foreach (HashType h in mfh.Hashes)
                     {
-                        ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                        changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
                     }
                 }
                 else
                 {
                     
-                    int indexInLocalHash = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
-                    int indexInNewHash = NewHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                    int indexInLocalHash = _modHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                    int indexInNewHash = newHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
                     // Determine all deletions first
-                    foreach (HashType ht in ModHashes[indexInLocalHash].Hashes)
+                    foreach (HashType ht in _modHashes[indexInLocalHash].Hashes)
                     {
-                        int index = NewHashes[indexInNewHash].Hashes.FindIndex(x => x.FileName == ht.FileName);
+                        int index = newHashes[indexInNewHash].Hashes.FindIndex(x => x.FileName == ht.FileName);
                         if (index == -1)
                         {
                             // need to add a delete change
-                            ChangeList.Add(new Change(mfh.ModName.ModName + ht.FileName, ChangeAction.Delete));
+                            changeList.Add(new Change(mfh.ModName.ModName + ht.FileName, ChangeAction.Delete));
 
                         }
                     }
                     foreach (HashType h in mfh.Hashes)
                     {
                         
-                        if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        if (_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
                             // File exists both in the local hash and the remote hash
-                            if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName && !x.Hash.SequenceEqual(h.Hash)))
+                            if (!_modHashes[indexInLocalHash]
+                                .Hashes.Exists(x => x.FileName == h.FileName &&
+                                                    !x.Hash.SequenceEqual(h.Hash))) continue;
                             {
                                 // A file exists but has a different hash, it must be (re)acquired 
-                                HashType hash = ModHashes[indexInLocalHash].Hashes.Find(x => x.FileName == h.FileName);
-                                ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                                //HashType hash = _modHashes[indexInLocalHash].Hashes.Find(x => x.FileName == h.FileName);
+                                changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
                             }
                         }
-                        else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
+                        else if (!_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
                         {
                             // Does not exist locally, but does exist remotely. Acquire it
-                            ChangeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                            changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
                         }
-                        else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !NewHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        else if (_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
                             // Exists locally, but does not exist remotely. Delete it
-                            ChangeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete));
+                            changeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete));
                         }
                     }
                 }
             }
-            return ChangeList;
+            return changeList;
         }
-        public bool Validate(List<ModFolderHash> RemoteHashes)
+        public bool Validate(List<ModFolderHash> remoteHashes)
         {
-            foreach (ModFolderHash mfh in RemoteHashes)
+            foreach (ModFolderHash mfh in remoteHashes)
             {
-                int IndexInLocal = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                int indexInLocal = _modHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
                 foreach (HashType h in mfh.Hashes)
                 {
-                    if (ModHashes[IndexInLocal].Hashes.Exists(x => x.FileName == h.FileName))
+                    if (_modHashes[indexInLocal].Hashes.Exists(x => x.FileName == h.FileName))
                     {
-                        HashType remoteHash = ModHashes[IndexInLocal].Hashes.Find(x => x.FileName == h.FileName);
+                        HashType remoteHash = _modHashes[indexInLocal].Hashes.Find(x => x.FileName == h.FileName);
                         if (remoteHash.Hash == h.Hash)
                         {
                             break;
                         }
                         else
                         {
-                            logger.Info("Validation of mods failed");
+                            _logger.Info("Validation of mods failed");
                             return false;
                         }
                     }
                     else
                     {
-                        logger.Info("Validation of mods failed");
+                        _logger.Info("Validation of mods failed");
                         return false;
                     }
                 }
             }
-            logger.Info("Validation of mods passed");
+            _logger.Info("Validation of mods passed");
             return true;
 
         }
         public Uri GetServerFileUri()
         {
             // TODO: Some sort of selection?
-            return new Uri(SyncUris[0], "server.json");
+            return new Uri(_syncUris[0], "server.json");
         }
         public List<ModFolderHash> GetLocalHashes()
         {
-            return ModHashes;
+            return _modHashes;
         }
         public DirectoryInfo GetLocalPath()
         {
-            return new DirectoryInfo(LocalPath);
+            return new DirectoryInfo(_localPath);
         }
         public void UpdateHashes()
         {
-            ModHashes = HashAllMods();
+            _modHashes = HashAllMods;
         }
     }
 }

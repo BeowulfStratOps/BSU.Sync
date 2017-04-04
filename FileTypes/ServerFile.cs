@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace BSU.Sync.FileTypes
@@ -26,20 +23,20 @@ namespace BSU.Sync.FileTypes
         [JsonProperty]
         public List<Uri> SyncUris { get; set; }
         [JsonProperty]
-        public Guid ServerGUID { get; set; }
+        public Guid ServerGuid { get; set; }
         [JsonProperty]
         public List<ModFolder> ModFolders { get; set; }
-        internal ServerFile(string ServerName, string ServerAddress, int ServePort, string Password, List<ModFolder> ModFolders,DateTime LastUpdate, DateTime CreationDate, Guid ServerGUID, List<Uri> SyncUris)
+        internal ServerFile(string serverName, string serverAddress, int servePort, string password, List<ModFolder> modFolders,DateTime lastUpdate, DateTime creationDate, Guid serverGuid, List<Uri> syncUris)
         {
-            this.ServerAddress = ServerAddress;
-            this.ServerName = ServerName;
-            this.Password = Password;
-            this.ServerPort = ServerPort;
-            this.ModFolders = ModFolders;
-            this.CreationDate = CreationDate;
-            this.ServerGUID = ServerGUID;
-            this.SyncUris = SyncUris;
-            LastUpdateDate = LastUpdate;
+            ServerAddress = serverAddress;
+            ServerName = serverName;
+            Password = password;
+            ServerPort = ServerPort;
+            ModFolders = modFolders;
+            CreationDate = creationDate;
+            ServerGuid = serverGuid;
+            SyncUris = syncUris;
+            LastUpdateDate = lastUpdate;
         }
         internal ServerFile()
         {

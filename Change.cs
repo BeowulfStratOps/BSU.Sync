@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BSU.Sync
+﻿namespace BSU.Sync
 {
     public enum ChangeAction
     {
@@ -15,10 +9,10 @@ namespace BSU.Sync
     {
         public string FilePath { get; set; }
         public ChangeAction Action { get; set; }
-        internal Change(string FilePath, ChangeAction Action)
+        internal Change(string filePath, ChangeAction action)
         {
-            this.FilePath = FilePath;
-            this.Action = Action;
+            this.FilePath = filePath;
+            this.Action = action;
         }
 
     }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace BSU.Sync.FileTypes
@@ -17,10 +13,10 @@ namespace BSU.Sync.FileTypes
         public HashFile()
         {
         }
-        public HashFile(string FolderName, List<HashType> Hashes)
+        public HashFile(string folderName, List<HashType> hashes)
         {
-            this.Hashes = Hashes;
-            this.FolderName = FolderName;
+            Hashes = hashes;
+            FolderName = folderName;
         }
     }
 }

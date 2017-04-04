@@ -42,31 +42,27 @@ namespace BSU.Sync
         /// <summary>
         /// Gets a list of all mod folders which contain 
         /// </summary>
-        /// <param name="Mods"></param>
-        /// <param name="LocalPath"></param>
+        /// <param name="mods"></param>
+        /// <param name="localPath"></param>
         /// <returns></returns>
-        public static List<ModFolder> GetModFoldersWithPlugins(List<ModFolder> Mods, string LocalPath)
+        public static List<ModFolder> GetModFoldersWithPlugins(List<ModFolder> mods, string localPath)
         {
-            List<ModFolder> returnList = new List<ModFolder>();
+            var returnList = new List<ModFolder>();
 
-            foreach (ModFolder m in Mods)
+            foreach (ModFolder m in mods)
             {
-                DirectoryInfo modPath = new DirectoryInfo(Path.Combine(LocalPath.ToString(), m.ModName.ToString()));
+                var modPath = new DirectoryInfo(Path.Combine(localPath, m.ModName));
                 DirectoryInfo[] folders = modPath.GetDirectories();
-                List<string> pluginFolders = new List<string>();
-                pluginFolders.Add("plugins");
-                pluginFolders.Add("plugin");
+                var pluginFolders = new List<string> {"plugins", "plugin"};
                 // ^ Support for both TFAR and ACRE 
                 foreach (string folder in pluginFolders)
                 {
-                    if (folders.Any(x => x.FullName.Equals(Path.Combine(modPath.FullName, folder))))
-                    {
-                        DirectoryInfo modPluginFolder = new DirectoryInfo(Path.Combine(modPath.FullName, folder));
-                        DirectoryInfo tsPluginFolder = new DirectoryInfo(Path.Combine(TeamSpeakPlugin.TeamSpeakPath(), folder));
+                    if (!folders.Any(x => x.FullName.Equals(Path.Combine(modPath.FullName, folder)))) continue;
+                    //var modPluginFolder = new DirectoryInfo(Path.Combine(modPath.FullName, folder));
+                    //var tsPluginFolder = new DirectoryInfo(Path.Combine(TeamSpeakPlugin.TeamSpeakPath(), folder));
 
-                        logger.Trace("Plugins exists inside of {0}", modPath);
-                        returnList.Add(m);
-                    }
+                    logger.Trace("Plugins exists inside of {0}", modPath);
+                    returnList.Add(m);
                 }
             }
 
