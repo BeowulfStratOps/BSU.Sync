@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>BSUSync</id>
+    <id>BSU.Sync</id>
     <version>$version$</version>
     <title>$title$</title>
     <authors>James McCartney</authors>
