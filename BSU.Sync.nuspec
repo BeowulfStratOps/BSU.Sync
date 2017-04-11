@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>BSUSync</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>James McCartney</authors>
+    <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
+    <projectUrl>https://github.com/BeowulfStratOps/BSU.Sync</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>Beowulf Sync Utlity - Library</description>
+    <copyright>Copyright 2017</copyright>
+    <tags>BSU ArmA</tags>
+  </metadata>
+  <files>
+    <file src="bin\$Configuration$\BSU.Sync.*" target="lib\net452"/>
+    <file src="bin\$Configuration$\IKVM.*" target="lib\net452"/>
+    <file src="bin\$Configuration$\zsync-core*" target="lib\net452"/>
+  </files>
+</package>
