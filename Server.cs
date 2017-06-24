@@ -366,17 +366,11 @@ namespace BSU.Sync
                         {
                             break;
                         }
-                        else
-                        {
-                            _logger.Info("Validation of mods failed");
-                            return false;
-                        }
-                    }
-                    else
-                    {
                         _logger.Info("Validation of mods failed");
                         return false;
                     }
+                    _logger.Info("Validation of mods failed");
+                    return false;
                 }
             }
             _logger.Info("Validation of mods passed");
