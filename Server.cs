@@ -12,8 +12,8 @@ namespace BSU.Sync
 {
     public struct ModFolderHash
     {
-        internal ModFolder ModName;
-        internal List<HashType> Hashes;
+        internal readonly ModFolder ModName;
+        internal readonly List<HashType> Hashes;
         internal ModFolderHash(ModFolder modName, List<HashType> hashes)
         {
             ModName = modName;
