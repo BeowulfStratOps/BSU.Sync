@@ -82,6 +82,35 @@ namespace BSU.Sync
 
             return true;
         }
+
+        public bool LoadFromFile(FileInfo configFilePath, DirectoryInfo localPath)
+        {
+            _logger.Info("Loading server from {0}, local path {1}", configFilePath, localPath);
+            _localPath = localPath.ToString();
+
+            OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 0 });
+
+            try
+            {
+                StreamReader sr = new StreamReader(configFilePath.FullName);
+                ServerFile sf = FileReader.ReadServerFileFromStream(sr.BaseStream);
+                if (sf == null)
+                {
+                    return false;
+                }
+                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 5 });
+                LoadServer(sf, _localPath);
+                OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
+                _modHashes = HashAllMods;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error((Exception)ex, "Failed to load server json file");
+                return false;
+            }
+
+            return true;
+        }
         public void CreateNewServer(string serverName, string serverAddress, string password, int serverPort, string lPath, string outputPath, List<Uri> syncUris)
         {
             _logger.Info("Creating new server: ServerName {0}, ServerAddress {1}, Password {2}, ServerPort {3}, LPath {4}, OutputPath {5}, SyncUri[0] {6}", serverName, serverAddress, password, serverPort, lPath, outputPath, syncUris[0]);
@@ -394,5 +423,6 @@ namespace BSU.Sync
         {
             _modHashes = HashAllMods;
         }
+
     }
 }
