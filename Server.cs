@@ -246,7 +246,7 @@ namespace BSU.Sync
                 {
                     // File is new 
                     changedFiles.Add(f);
-                    break;
+                    continue;
                 }
 
                 if (!hash1.Hash.SequenceEqual(hash2.Hash))
