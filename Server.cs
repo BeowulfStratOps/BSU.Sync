@@ -52,6 +52,7 @@ namespace BSU.Sync
         List<ModFolderHash> _modHashes;
         Guid _serverGuid;
         List<Uri> _syncUris;
+        private List<ModFolderHash> _oldHashes;
 
         public bool LoadFromWeb(Uri remoteServerFile, DirectoryInfo localPath)
         {
@@ -193,17 +194,68 @@ namespace BSU.Sync
         {
             _lastUpdate = DateTime.Now;
             _mods = GetFolders(inputDirectory);
+            _oldHashes = HashAllMods;
             FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(inputDirectory.FullName, "server.json")));
             FileCopy.CopyAll(inputDirectory, new DirectoryInfo(_localPath));
             FileCopy.CleanUpFolder(inputDirectory, new DirectoryInfo(_localPath), new DirectoryInfo(_localPath));
             // TODO: Maybe remove all zsync files?
             _modHashes = HashAllMods;
-            foreach (string f in Directory.EnumerateFiles(_localPath, "*", SearchOption.AllDirectories).Where(name => !name.EndsWith(".zsync")))
+
+            List<String> changedFiles = GetChangedFiles(inputDirectory);
+
+            foreach (string f in changedFiles)
             {
                 ZsyncManager.Make(f);
             }
             FileWriter.WriteModHashes(_modHashes, new DirectoryInfo(_localPath));
 
+        }
+        /// <summary>
+        /// Compares files in the input directory with the hashes of the old files, creating a list of those that have changed
+        /// </summary>
+        /// <param name="inputDirectory">Mod input directory</param>
+        /// <returns>List of changed files</returns>
+        private List<string> GetChangedFiles(DirectoryInfo inputDirectory)
+        {
+            var changedFiles = new List<string>();
+
+            foreach (string f in Directory.EnumerateFiles(_localPath, "*", SearchOption.AllDirectories)
+                .Where(name => !name.EndsWith(".zsync") && !name.EndsWith("hash.json") &&
+                               !name.EndsWith("server.json")))
+            {
+                // Find the source file in the hashes and compare
+                string path = f.Replace(_localPath, string.Empty).TrimStart(Path.DirectorySeparatorChar);
+
+
+                string[] splitPath = path.Split(new[] {Path.DirectorySeparatorChar}, 2);
+
+                string mod = splitPath[0];
+                string relativePath = splitPath[1];
+
+                List<HashType> oldModHash = _oldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+
+                HashType hash1 =
+                    oldModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+
+                List<HashType> newModHash = _modHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+
+                HashType hash2 =
+                    newModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+
+                if (hash1 == null || hash2 == null)
+                {
+                    // File is new 
+                    changedFiles.Add(f);
+                    continue;
+                }
+
+                if (!hash1.Hash.SequenceEqual(hash2.Hash))
+                {
+                    changedFiles.Add(f);
+                }
+            }
+
+            return changedFiles;
         }
         /// <summary>
         /// Returns a list of all the mods this server is aware of
