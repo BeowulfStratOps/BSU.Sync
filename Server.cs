@@ -198,6 +198,7 @@ namespace BSU.Sync
             FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(inputDirectory.FullName, "server.json")));
             FileCopy.CopyAll(inputDirectory, new DirectoryInfo(_localPath));
             FileCopy.CleanUpFolder(inputDirectory, new DirectoryInfo(_localPath), new DirectoryInfo(_localPath));
+            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(_localPath,"server.json")));
             // TODO: Maybe remove all zsync files?
             _modHashes = HashAllMods;
 
