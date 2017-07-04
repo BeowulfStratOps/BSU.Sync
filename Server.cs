@@ -320,6 +320,12 @@ namespace BSU.Sync
                                     try
                                     {
                                         ZsyncManager.ZsyncDownload(reqUri, baseDirectory.ToString(), c.FilePath);
+                                        if (!VerifyFile(newHashes, baseDirectory, c.FilePath))
+                                        {
+                                            success = false;
+                                            failedChanges.Add(c);
+                                            _logger.Error("Verification failed on file {0}", c.FilePath);
+                                        }
                                     }
                                     catch (Exception ex)
                                     {
@@ -374,6 +380,36 @@ namespace BSU.Sync
 
 
         }
+        /// <summary>
+        /// Verifies a local file against the remote hash to see if its been correctly downloaded
+        /// </summary>
+        /// <param name="newHashes">New hashes</param>
+        /// <param name="baseDirectory">Local Directory</param>
+        /// <param name="filePath">Path of the file to verify</param>
+        /// <returns></returns>
+        private bool VerifyFile(List<ModFolderHash> newHashes, DirectoryInfo baseDirectory, string filePath)
+        {
+            string[] split = filePath.Split(new[] {Path.DirectorySeparatorChar},2);
+
+            string modName = split[0];
+            string path = split[1];
+
+            ModFolderHash mfh = newHashes.FirstOrDefault(x => x.ModName.ModName == modName);
+
+            HashType correctHash = mfh.Hashes.FirstOrDefault(x => x.FileName == path || x.FileName == Path.DirectorySeparatorChar + path);
+
+            byte[] actualHash = Hash.GetFileHash(Path.Combine(baseDirectory.FullName, filePath));
+
+            if (correctHash == null)
+            {
+                // Something has gone a little wrong
+                _logger.Error("correctHash == null");
+                return false;
+            }
+
+            return correctHash.Hash.SequenceEqual(actualHash);
+        }
+
         public List<Change> GenerateChangeList(List<ModFolderHash> newHashes)
         {
             var changeList = new List<Change>();
