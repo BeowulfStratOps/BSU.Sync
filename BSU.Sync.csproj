@@ -53,10 +53,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArmA.cs" />
+    <Compile Include="ArmALauncher.cs" />
     <Compile Include="Bikey.cs" />
     <Compile Include="Change.cs" />
     <Compile Include="FileCopy.cs" />
     <Compile Include="FileReader.cs" />
+    <Compile Include="FileTypes\BI\Local.cs" />
+    <Compile Include="FileTypes\BI\Preset2.cs" />
     <Compile Include="FileTypes\HashFile.cs" />
     <Compile Include="FileTypes\HashType.cs" />
     <Compile Include="FileWriter.cs" />
