@@ -11,7 +11,7 @@ namespace BSU.Sync.FileTypes.BI
     [XmlRoot(ElementName = "addons-presets")]
     public class Preset2
     {
-        [XmlElement(ElementName = "last-update5")]
+        [XmlElement(ElementName = "last-update")]
         public DateTime LastUpdated;
 
         [XmlArray(ElementName = "published-ids")]
