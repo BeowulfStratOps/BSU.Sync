@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace BSU.Sync.FileTypes.BI
 {
-    class Local
+    public class Local
     {
         [JsonProperty(propertyName: "autodetectionDirectories")]
         public List<string> AutodetectionDirectories { get; set; }
