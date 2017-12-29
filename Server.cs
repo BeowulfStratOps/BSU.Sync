@@ -26,9 +26,13 @@ namespace BSU.Sync
 
         public delegate void ProgressUpdateEventHandler(object sender, ProgressUpdateEventArguments e);
         public delegate void FetchProgressUpdateEventHandler(object sender, ProgressUpdateEventArguments e);
+        public delegate void DownloadProgressEventHandler(object sender, DownloadProgressEventArgs e);
+        public delegate void UpdateProgressEventHandler(object sender, DownloadProgressEventArgs e);
 
         public event ProgressUpdateEventHandler ProgressUpdateEvent;
         public event FetchProgressUpdateEventHandler FetchProgessUpdateEvent;
+        public event DownloadProgressEventHandler DownloadProgressEvent;
+        public event UpdateProgressEventHandler UpdateProgressEvent;
 
         protected virtual void OnProgressUpdateEvent(ProgressUpdateEventArguments e)
         {
@@ -38,6 +42,16 @@ namespace BSU.Sync
         protected virtual void OnFetchProgressUpdateEvent(ProgressUpdateEventArguments e)
         {
             FetchProgessUpdateEvent?.Invoke(this, e);
+        }
+
+        protected virtual void OnDownloadProgressEvent(DownloadProgressEventArgs e)
+        {
+            DownloadProgressEvent?.Invoke(this, e);
+        }
+
+        protected virtual void OnUpdateProgressEvent(DownloadProgressEventArgs e)
+        {
+            UpdateProgressEvent?.Invoke(this, e);
         }
 
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
@@ -280,17 +294,34 @@ namespace BSU.Sync
             var failedChanges = new List<Change>();
             
             List<Change> changes = GenerateChangeList(newHashes);
+
             var tasks = new List<Task>();
+            
+            var downloads = changes.Count(c => c.Reason == ChangeReason.New);
+            var downloadBytes = changes.Where(c => c.Reason == ChangeReason.New).Select(c => c.Filesize).Sum();
+            var updates = changes.Count(c => c.Reason == ChangeReason.Update);
+            var updateBytes = changes.Where(c => c.Reason == ChangeReason.Update).Select(c => c.Filesize).Sum();
 
             // Allocated 80% for this task (10%-90%)
             var completedTasks = 0;
-            var perc = 90;
+
+            var updateTracker = new UpdateTracker(updates, updateBytes, downloads, downloadBytes, OnDownloadProgressEvent, OnUpdateProgressEvent);
+
             var success = true;
-            if (changes.Count > 0)
+            OnDownloadProgressEvent(new DownloadProgressEventArgs
             {
-                perc = (int)((80d / changes.Count) * completedTasks);
-            }
-            OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
+                BytesDonwloaded = 0,
+                BytesTotal = downloadBytes,
+                Files = 0,
+                FilesTotal = downloads
+            });
+            OnUpdateProgressEvent(new DownloadProgressEventArgs()
+            {
+                BytesDonwloaded = 0,
+                BytesTotal = updateBytes,
+                Files = 0,
+                FilesTotal = updates
+            });
             OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = completedTasks, MaximumValue = changes.Count });
             foreach (Change c in changes)
             {
@@ -316,11 +347,21 @@ namespace BSU.Sync
                                 {
                                     Thread.Sleep(100);
                                 }
+                                var state = updateTracker.NewTask(c.Reason);
                                 Task t = Task.Factory.StartNew(() => {
                                     //Console.WriteLine("Starting");
                                     try
                                     {
-                                        ZsyncManager.ZsyncDownload(reqUri, baseDirectory.ToString(), c.FilePath);
+                                        Action<long> update = null;
+                                        if (c.Filesize > ZsyncManager.UpdateIntervalBytes)
+                                        {
+                                            update = l =>
+                                            {
+                                                state.BytesDownloaded = l;
+                                                updateTracker.Update(state);
+                                            };
+                                        }
+                                        ZsyncManager.ZsyncDownload(reqUri, baseDirectory.ToString(), c.FilePath, update);
                                         if (!VerifyFile(newHashes, baseDirectory, c.FilePath))
                                         {
                                             success = false;
@@ -339,9 +380,10 @@ namespace BSU.Sync
                                     //Console.WriteLine("Ending");
                                     tasks.Remove(t);
                                     if (!success) return;
+                                    state.BytesDownloaded = c.Filesize;
+                                    state.Complete = true;
+                                    updateTracker.Update(state);
                                     completedTasks++;
-                                    perc = (int) ((80d/changes.Count)*completedTasks);
-                                    OnProgressUpdateEvent(new ProgressUpdateEventArguments() {ProgressValue = 10 + perc});
                                     OnFetchProgressUpdateEvent(new ProgressUpdateEventArguments()
                                     {
                                         ProgressValue = completedTasks,
@@ -381,6 +423,7 @@ namespace BSU.Sync
 
 
         }
+
         /// <summary>
         /// Verifies a local file against the remote hash to see if its been correctly downloaded
         /// </summary>
@@ -421,7 +464,7 @@ namespace BSU.Sync
                     // If the entire mod doesn't exist, add it all
                     foreach (HashType h in mfh.Hashes)
                     {
-                        changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                        changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.New, h.FileSize));
                     }
                 }
                 else
@@ -436,7 +479,7 @@ namespace BSU.Sync
                         if (index == -1)
                         {
                             // need to add a delete change
-                            changeList.Add(new Change(mfh.ModName.ModName + ht.FileName, ChangeAction.Delete));
+                            changeList.Add(new Change(mfh.ModName.ModName + ht.FileName, ChangeAction.Delete, ChangeReason.Deleted, 0));
 
                         }
                     }
@@ -452,18 +495,18 @@ namespace BSU.Sync
                             {
                                 // A file exists but has a different hash, it must be (re)acquired 
                                 //HashType hash = _modHashes[indexInLocalHash].Hashes.Find(x => x.FileName == h.FileName);
-                                changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                                changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.Update, h.FileSize));
                             }
                         }
                         else if (!_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
                         {
                             // Does not exist locally, but does exist remotely. Acquire it
-                            changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire));
+                            changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.New, h.FileSize));
                         }
                         else if (_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
                             // Exists locally, but does not exist remotely. Delete it
-                            changeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete));
+                            changeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete, ChangeReason.Deleted, 0));
                         }
                     }
                 }

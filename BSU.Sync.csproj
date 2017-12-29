@@ -56,6 +56,7 @@
     <Compile Include="ArmALauncher.cs" />
     <Compile Include="Bikey.cs" />
     <Compile Include="Change.cs" />
+    <Compile Include="DownloadProgressEventArgs.cs" />
     <Compile Include="FileCopy.cs" />
     <Compile Include="FileReader.cs" />
     <Compile Include="FileTypes\BI\Local.cs" />
@@ -71,6 +72,7 @@
     <Compile Include="Remote.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="TeamSpeakPlugin.cs" />
+    <Compile Include="UpdateTracker.cs" />
     <Compile Include="UserConfig.cs" />
     <Compile Include="ZsyncManager.cs" />
   </ItemGroup>
