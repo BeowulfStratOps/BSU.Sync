@@ -3,6 +3,7 @@ using com.salesforce.zsync;
 using System.Runtime.CompilerServices;
 using System.IO;
 using System.Net;
+using com.salesforce.zsync.http;
 using NLog;
 
 [assembly: InternalsVisibleTo("BSOU.CommandLinePrototype")]
@@ -10,6 +11,8 @@ namespace BSU.Sync
 {
     internal static class ZsyncManager
     {
+        public const long UpdateIntervalBytes = 10 * 1024 * 1024;
+
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         internal static void Make(string filepath)
         {
@@ -22,7 +25,7 @@ namespace BSU.Sync
             Logger.Info("Writing zsync file {0}", filepath);
             zm.writeToFile(java.nio.file.Paths.get(filepath), options);
         }
-        internal static void ZsyncDownload(Uri controlFileUri, string saveFolder, string fileName)
+        internal static void ZsyncDownload(Uri controlFileUri, string saveFolder, string fileName, Action<long> updateEvent = null)
         {
             // Work around for BSOU-13
             if (java.util.Locale.getDefault() != java.util.Locale.UK)
@@ -42,7 +45,10 @@ namespace BSU.Sync
             try
             {
                 Logger.Trace("Fetching {0}", javaUri.toString());
-                zsync.zsync(javaUri, options);
+                if (updateEvent != null)
+                    zsync.zsync(javaUri, options, new MyZsyncObserver(updateEvent));
+                else
+                    zsync.zsync(javaUri, options);
             }
             catch (Exception ex)
             {
@@ -67,6 +73,32 @@ namespace BSU.Sync
 
             }
 
+        }
+
+        private class MyZsyncObserver : ZsyncObserver
+        {
+            private readonly Action<long> _updateEvent;
+            private readonly long _interval;
+
+            private long _bytestotal;
+            private long _lastupdate;
+
+            public MyZsyncObserver(Action<long> updateEvent, long? interval = null)
+            {
+                _updateEvent = updateEvent;
+                _interval = interval ?? UpdateIntervalBytes;
+                _lastupdate = 0;
+                _bytestotal = 0;
+            }
+
+            public override void bytesDownloaded(long bytes)
+            {
+                _bytestotal += bytes;
+                base.bytesDownloaded(bytes);
+                if (_bytestotal <= _lastupdate + _interval) return;
+                _lastupdate = _bytestotal;
+                _updateEvent(_bytestotal);
+            }
         }
     }
 }

@@ -37,6 +37,13 @@ namespace BSU.Sync
                 }
             }
         }
+
+        public static long GetFileSize(string filename)
+        {
+            var file = new FileInfo(filename);
+            if (!file.Exists) throw new FileNotFoundException("File not found", filename);
+            return file.Length;
+        }
         /// <summary>
         /// Computes a PBO's hash (by removing the last 21 bytes). May be used for verification
         /// </summary>
@@ -62,7 +69,7 @@ namespace BSU.Sync
 			}
             var hashes = new List<HashType>();
             if (!Directory.Exists(dir)) return hashes;
-            hashes.AddRange(from file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".zsync")) where !file.EndsWith("hash.json") && !file.EndsWith("server.json") let hash = GetFileHash(file) select new HashType(file.Replace(dir, string.Empty), hash));
+            hashes.AddRange(from file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".zsync")) where !file.EndsWith("hash.json") && !file.EndsWith("server.json") let hash = GetFileHash(file) select new HashType(file.Replace(dir, string.Empty), hash, GetFileSize(file)));
             return hashes;
         }
     }

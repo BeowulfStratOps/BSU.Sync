@@ -5,15 +5,29 @@
         Acquire,
         Delete
     }
+    public enum ChangeReason
+    {
+        New,
+        Deleted,
+        Update
+    }
     public class Change
     {
         public string FilePath { get; set; }
         public ChangeAction Action { get; set; }
-        internal Change(string filePath, ChangeAction action)
+        public ChangeReason Reason { get; set; }
+        public long Filesize { get; set; }
+        internal Change(string filePath, ChangeAction action, ChangeReason reason, long filesize)
         {
-            this.FilePath = filePath;
-            this.Action = action;
+            FilePath = filePath;
+            Action = action;
+            Reason = reason;
+            Filesize = filesize;
         }
 
+        public override string ToString()
+        {
+            return $"{Action}({Reason}): ({Filesize}) {FilePath}";
+        }
     }
 }
