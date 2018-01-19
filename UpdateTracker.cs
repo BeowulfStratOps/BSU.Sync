@@ -38,8 +38,9 @@ namespace BSU.Sync
 
         public void Update(TaskState state)
         {
-            var bytes = _states.Where(s => s.Type == state.Type).Sum(s => s.BytesDownloaded);
-            var items = _states.Count(s => s.Type == state.Type && s.Complete);
+            var states = _states.ToList();
+            var bytes = states.Where(s => s.Type == state.Type).Sum(s => s.BytesDownloaded);
+            var items = states.Count(s => s.Type == state.Type && s.Complete);
 
             if (state.Type == ChangeReason.New)
             {
