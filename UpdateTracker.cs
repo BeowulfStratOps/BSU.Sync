@@ -13,6 +13,7 @@ namespace BSU.Sync
         private readonly Action<DownloadProgressEventArgs> _downloadHandler;
         private readonly Action<DownloadProgressEventArgs> _updateHandler;
         private readonly List<TaskState> _states = new List<TaskState>();
+        private readonly object _stateslock = new object();
 
         public UpdateTracker(int updates, long updatesBytes, int downloads, long downloadsBytes, Action<DownloadProgressEventArgs> downloadHandler, Action<DownloadProgressEventArgs> updateHandler)
         {
@@ -32,14 +33,22 @@ namespace BSU.Sync
                 Complete = false,
                 Type = type
             };
-            _states.Add(state);
+            lock (_stateslock)
+            {
+                _states.Add(state);
+            }
             return state;
         }
 
         public void Update(TaskState state)
         {
-            var bytes = _states.Where(s => s.Type == state.Type).Sum(s => s.BytesDownloaded);
-            var items = _states.Count(s => s.Type == state.Type && s.Complete);
+            long bytes;
+            int items;
+            lock (_stateslock)
+            {
+                bytes = _states.Where(s => s.Type == state.Type).Sum(s => s.BytesDownloaded);
+                items = _states.Count(s => s.Type == state.Type && s.Complete);
+            }
 
             if (state.Type == ChangeReason.New)
             {
