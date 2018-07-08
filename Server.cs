@@ -56,17 +56,17 @@ namespace BSU.Sync
 
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
         string _localPath;
-        string _serverName;
-        string _serverAddress;
-        int _serverPort;
-        string _password;
-        List<ModFolder> _mods;
-        DateTime _creationDate;
-        DateTime _lastUpdate;
-        List<ModFolderHash> _modHashes;
-        Guid _serverGuid;
-        List<Uri> _syncUris;
-        private List<ModFolderHash> _oldHashes;
+        public string ServerName { get; private set; }
+        public string ServerAddress { get; private set; }
+        public int ServerPort { get; private set; }
+        public string Password { get; private set; }
+        public List<ModFolder> Mods { get; private set; }
+        public DateTime CreationDate { get; private set; }
+        public DateTime LastUpdate { get; private set; }
+        public List<ModFolderHash> ModHashes { get; private set; }
+        public Guid ServerGuid { get; private set; }
+        public List<Uri> SyncUris { get; private set; }
+        public List<ModFolderHash> OldHashes { get; private set; }
 
         public bool LoadFromWeb(Uri remoteServerFile, DirectoryInfo localPath)
         {
@@ -87,7 +87,7 @@ namespace BSU.Sync
                 OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 5 });
                 LoadServer(sf, _localPath);
                 OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
-                _modHashes = HashAllMods;
+                ModHashes = HashAllMods;
             }
             catch (WebException we)
             {
@@ -116,7 +116,7 @@ namespace BSU.Sync
                 OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 5 });
                 LoadServer(sf, _localPath);
                 OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
-                _modHashes = HashAllMods;
+                ModHashes = HashAllMods;
             }
             catch (Exception ex)
             {
@@ -129,16 +129,16 @@ namespace BSU.Sync
         public void CreateNewServer(string serverName, string serverAddress, string password, int serverPort, string lPath, string outputPath, List<Uri> syncUris)
         {
             _logger.Info("Creating new server: ServerName {0}, ServerAddress {1}, Password {2}, ServerPort {3}, LPath {4}, OutputPath {5}, SyncUri[0] {6}", serverName, serverAddress, password, serverPort, lPath, outputPath, syncUris[0]);
-            _serverAddress = serverAddress;
-            _serverName = serverName;
-            _serverPort = serverPort;
-            _password = password;
-            _syncUris = syncUris;
-            _creationDate = DateTime.Now;
-            _lastUpdate = DateTime.Now;
-            _serverGuid = Guid.NewGuid();
+            ServerAddress = serverAddress;
+            ServerName = serverName;
+            ServerPort = serverPort;
+            Password = password;
+            SyncUris = syncUris;
+            CreationDate = DateTime.Now;
+            LastUpdate = DateTime.Now;
+            ServerGuid = Guid.NewGuid();
             _localPath = outputPath;
-            _syncUris = syncUris;
+            SyncUris = syncUris;
             UpdateServer(new DirectoryInfo(lPath));
 
         }
@@ -164,15 +164,15 @@ namespace BSU.Sync
             {
                 _logger.Info("Hashing all mods");
                 //var taskList = new List<Task>();
-                var returnHashes = new List<ModFolderHash>(_mods.Count);
+                var returnHashes = new List<ModFolderHash>(Mods.Count);
 
                 int currentModNumber = 1;
                 int perc = 90;
-                if (_mods.Count > 0)
+                if (Mods.Count > 0)
                 {
-                    perc = (int)((90d / _mods.Count) * currentModNumber);
+                    perc = (int)((90d / Mods.Count) * currentModNumber);
                 }
-                foreach (ModFolder mod in _mods)
+                foreach (ModFolder mod in Mods)
                 {
                     _logger.Info("Hashing {0}", mod.ModName);
                     List<HashType> hashes = Hash.HashFolder(_localPath + @"\" + mod.ModName);
@@ -180,7 +180,7 @@ namespace BSU.Sync
                     _logger.Info("Hashed {0}", mod.ModName);
                     OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 + perc });
                     currentModNumber++;
-                    perc = (int)((90d / _mods.Count) * currentModNumber);
+                    perc = (int)((90d / Mods.Count) * currentModNumber);
                 }
                 OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 100 });
                 return returnHashes;
@@ -189,32 +189,32 @@ namespace BSU.Sync
 
         public ServerFile GetServerFile()
         {
-            return new ServerFile(_serverName, _serverAddress, _serverPort, _password, _mods, _lastUpdate, _creationDate, _serverGuid, _syncUris);
+            return new ServerFile(ServerName, ServerAddress, ServerPort, Password, Mods, LastUpdate, CreationDate, ServerGuid, SyncUris);
         }
         public void LoadServer(ServerFile sf, string localPath)
         {
             _localPath = localPath;
-            _serverName = sf.ServerName;
-            _serverAddress = sf.ServerAddress;
-            _serverPort = sf.ServerPort;
-            _password = sf.Password;
-            _mods = sf.ModFolders;
-            _lastUpdate = sf.LastUpdateDate;
-            _creationDate = sf.CreationDate;
-            _serverGuid = sf.ServerGuid;
-            _syncUris = sf.SyncUris;
+            ServerName = sf.ServerName;
+            ServerAddress = sf.ServerAddress;
+            ServerPort = sf.ServerPort;
+            Password = sf.Password;
+            Mods = sf.ModFolders;
+            LastUpdate = sf.LastUpdateDate;
+            CreationDate = sf.CreationDate;
+            ServerGuid = sf.ServerGuid;
+            SyncUris = sf.SyncUris;
         }
         public void UpdateServer(DirectoryInfo inputDirectory)
         {
-            _lastUpdate = DateTime.Now;
-            _mods = GetFolders(inputDirectory);
-            _oldHashes = HashAllMods;
+            LastUpdate = DateTime.Now;
+            Mods = GetFolders(inputDirectory);
+            OldHashes = HashAllMods;
             FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(inputDirectory.FullName, "server.json")));
             FileCopy.CopyAll(inputDirectory, new DirectoryInfo(_localPath));
             FileCopy.CleanUpFolder(inputDirectory, new DirectoryInfo(_localPath), new DirectoryInfo(_localPath));
             FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(_localPath,"server.json")));
             // TODO: Maybe remove all zsync files?
-            _modHashes = HashAllMods;
+            ModHashes = HashAllMods;
 
             List<String> changedFiles = GetChangedFiles(inputDirectory);
 
@@ -222,7 +222,7 @@ namespace BSU.Sync
             {
                 ZsyncManager.Make(f);
             }
-            FileWriter.WriteModHashes(_modHashes, new DirectoryInfo(_localPath));
+            FileWriter.WriteModHashes(ModHashes, new DirectoryInfo(_localPath));
 
         }
         /// <summary>
@@ -247,12 +247,12 @@ namespace BSU.Sync
                 string mod = splitPath[0];
                 string relativePath = splitPath[1];
 
-                List<HashType> oldModHash = _oldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+                List<HashType> oldModHash = OldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
 
                 HashType hash1 =
                     oldModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
 
-                List<HashType> newModHash = _modHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+                List<HashType> newModHash = ModHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
 
                 HashType hash2 =
                     newModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
@@ -278,7 +278,7 @@ namespace BSU.Sync
         /// <returns></returns>
         public List<ModFolder> GetLoadedMods()
         {
-            return _mods;
+            return Mods;
         }
         /// <summary>
         /// Fetches changes
@@ -332,7 +332,7 @@ namespace BSU.Sync
                         if (c.FilePath != "server.json")
                         {
                             //Console.WriteLine("Getting {0}",c.FilePath);
-                            var reqUri = new Uri(_syncUris[0], c.FilePath + ".zsync");
+                            var reqUri = new Uri(SyncUris[0], c.FilePath + ".zsync");
                             try
                             {
                                 success = true;
@@ -459,7 +459,7 @@ namespace BSU.Sync
             var changeList = new List<Change>();
             foreach (ModFolderHash mfh in newHashes)
             {
-                if (!_modHashes.Exists(x => x.ModName.ModName == mfh.ModName.ModName))
+                if (!ModHashes.Exists(x => x.ModName.ModName == mfh.ModName.ModName))
                 {
                     // If the entire mod doesn't exist, add it all
                     foreach (HashType h in mfh.Hashes)
@@ -470,10 +470,10 @@ namespace BSU.Sync
                 else
                 {
                     
-                    int indexInLocalHash = _modHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                    int indexInLocalHash = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
                     int indexInNewHash = newHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
                     // Determine all deletions first
-                    foreach (HashType ht in _modHashes[indexInLocalHash].Hashes)
+                    foreach (HashType ht in ModHashes[indexInLocalHash].Hashes)
                     {
                         int index = newHashes[indexInNewHash].Hashes.FindIndex(x => x.FileName == ht.FileName);
                         if (index == -1)
@@ -486,10 +486,10 @@ namespace BSU.Sync
                     foreach (HashType h in mfh.Hashes)
                     {
                         
-                        if (_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
                             // File exists both in the local hash and the remote hash
-                            if (!_modHashes[indexInLocalHash]
+                            if (!ModHashes[indexInLocalHash]
                                 .Hashes.Exists(x => x.FileName == h.FileName &&
                                                     !x.Hash.SequenceEqual(h.Hash))) continue;
                             {
@@ -498,12 +498,12 @@ namespace BSU.Sync
                                 changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.Update, h.FileSize));
                             }
                         }
-                        else if (!_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
+                        else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
                         {
                             // Does not exist locally, but does exist remotely. Acquire it
                             changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.New, h.FileSize));
                         }
-                        else if (_modHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
                         {
                             // Exists locally, but does not exist remotely. Delete it
                             changeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete, ChangeReason.Deleted, 0));
@@ -517,12 +517,12 @@ namespace BSU.Sync
         {
             foreach (ModFolderHash mfh in remoteHashes)
             {
-                int indexInLocal = _modHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                int indexInLocal = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
                 foreach (HashType h in mfh.Hashes)
                 {
-                    if (_modHashes[indexInLocal].Hashes.Exists(x => x.FileName == h.FileName))
+                    if (ModHashes[indexInLocal].Hashes.Exists(x => x.FileName == h.FileName))
                     {
-                        HashType remoteHash = _modHashes[indexInLocal].Hashes.Find(x => x.FileName == h.FileName);
+                        HashType remoteHash = ModHashes[indexInLocal].Hashes.Find(x => x.FileName == h.FileName);
                         if (remoteHash.Hash == h.Hash)
                         {
                             break;
@@ -541,11 +541,11 @@ namespace BSU.Sync
         public Uri GetServerFileUri()
         {
             // TODO: Some sort of selection?
-            return new Uri(_syncUris[0], "server.json");
+            return new Uri(SyncUris[0], "server.json");
         }
         public List<ModFolderHash> GetLocalHashes()
         {
-            return _modHashes;
+            return ModHashes;
         }
         public DirectoryInfo GetLocalPath()
         {
@@ -553,7 +553,7 @@ namespace BSU.Sync
         }
         public void UpdateHashes()
         {
-            _modHashes = HashAllMods;
+            ModHashes = HashAllMods;
         }
 
     }
