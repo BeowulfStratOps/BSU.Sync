@@ -34,6 +34,8 @@ namespace BSU.Sync
         public event DownloadProgressEventHandler DownloadProgressEvent;
         public event UpdateProgressEventHandler UpdateProgressEvent;
 
+        private string ServerFileName;
+
         protected virtual void OnProgressUpdateEvent(ProgressUpdateEventArguments e)
         {
             ProgressUpdateEvent?.Invoke(this, e);
@@ -72,6 +74,8 @@ namespace BSU.Sync
         {
             _logger.Info("Loading server from {0}, local path {1}", remoteServerFile, localPath);
             _localPath = localPath.ToString();
+
+            ServerFileName = Path.GetFileName(remoteServerFile.LocalPath);
 
             OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 0 });
 
@@ -236,7 +240,7 @@ namespace BSU.Sync
 
             foreach (string f in Directory.EnumerateFiles(_localPath, "*", SearchOption.AllDirectories)
                 .Where(name => !name.EndsWith(".zsync") && !name.EndsWith("hash.json") &&
-                               !name.EndsWith("server.json")))
+                               !name.EndsWith(ServerFileName)))
             {
                 // Find the source file in the hashes and compare
                 string path = f.Replace(_localPath, string.Empty).TrimStart(Path.DirectorySeparatorChar);
@@ -329,7 +333,7 @@ namespace BSU.Sync
                 {
                     case ChangeAction.Acquire:
                         //Changes.Remove(c);
-                        if (c.FilePath != "server.json")
+                        if (c.FilePath != ServerFileName)
                         {
                             //Console.WriteLine("Getting {0}",c.FilePath);
                             var reqUri = new Uri(SyncUris[0], c.FilePath + ".zsync");
@@ -541,7 +545,7 @@ namespace BSU.Sync
         public Uri GetServerFileUri()
         {
             // TODO: Some sort of selection?
-            return new Uri(SyncUris[0], "server.json");
+            return new Uri(SyncUris[0], ServerFileName);
         }
         public List<ModFolderHash> GetLocalHashes()
         {
