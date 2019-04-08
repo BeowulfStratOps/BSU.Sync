@@ -7,6 +7,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using NLog;
+using sun.security.util;
 
 namespace BSU.Sync
 {
@@ -69,6 +70,8 @@ namespace BSU.Sync
         public Guid ServerGuid { get; private set; }
         public List<Uri> SyncUris { get; private set; }
         public List<ModFolderHash> OldHashes { get; private set; }
+        
+        private string JsonFileName { get; set; }
 
         public bool LoadFromWeb(Uri remoteServerFile, DirectoryInfo localPath)
         {
@@ -106,6 +109,7 @@ namespace BSU.Sync
         {
             _logger.Info("Loading server from {0}, local path {1}", configFilePath, localPath);
             _localPath = localPath.ToString();
+            JsonFileName = configFilePath.Name;
 
             OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 0 });
 
@@ -130,9 +134,9 @@ namespace BSU.Sync
 
             return true;
         }
-        public void CreateNewServer(string serverName, string serverAddress, string password, int serverPort, string lPath, string outputPath, List<Uri> syncUris)
+        public void CreateNewServer(string serverName, string serverAddress, string password, int serverPort, string lPath, string outputPath, List<Uri> syncUris, string fileName, string[] filter)
         {
-            _logger.Info("Creating new server: ServerName {0}, ServerAddress {1}, Password {2}, ServerPort {3}, LPath {4}, OutputPath {5}, SyncUri[0] {6}", serverName, serverAddress, password, serverPort, lPath, outputPath, syncUris[0]);
+            _logger.Info("Creating new server: ServerName {0}, ServerAddress {1}, Password {2}, ServerPort {3}, LPath {4}, OutputPath {5}, SyncUri[0] {6}, FileName: {7}", serverName, serverAddress, password, serverPort, lPath, outputPath, syncUris[0], fileName);
             ServerAddress = serverAddress;
             ServerName = serverName;
             ServerPort = serverPort;
@@ -143,7 +147,8 @@ namespace BSU.Sync
             ServerGuid = Guid.NewGuid();
             _localPath = outputPath;
             SyncUris = syncUris;
-            UpdateServer(new DirectoryInfo(lPath));
+            JsonFileName = fileName;
+            UpdateServer(new DirectoryInfo(lPath), filter);
 
         }
         // ReSharper disable once UnusedMember.Local
@@ -151,14 +156,26 @@ namespace BSU.Sync
         {
             return GetFolders(new DirectoryInfo(_localPath));
         }
-        public List<ModFolder> GetFolders(DirectoryInfo filePath)
+        public List<ModFolder> GetFolders(DirectoryInfo filePath, string[] filter = null)
         {
+            //filter = filter ?? new string[0];
             _logger.Info("Finding folders");
             var returnList = new List<ModFolder>();
             foreach (string d in Directory.GetDirectories(filePath.FullName))
             {
-                _logger.Info("Found folder {0}", d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty));
-                returnList.Add(new ModFolder(d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty)));
+                var folder = d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty);
+                if (filter.Length  != 0)
+                {
+                    if (!filter.Contains(d)) continue;
+                    _logger.Info("Found folder {0}", folder);
+                    returnList.Add(new ModFolder(folder));
+                }
+                else
+                {
+                    _logger.Info("Found folder {0}", folder);
+                    returnList.Add(new ModFolder(folder));
+                }
+
             }
             return returnList;
         }
@@ -208,15 +225,17 @@ namespace BSU.Sync
             ServerGuid = sf.ServerGuid;
             SyncUris = sf.SyncUris;
         }
-        public void UpdateServer(DirectoryInfo inputDirectory)
+        public void UpdateServer(DirectoryInfo inputDirectory, string[] filter = null)
         {
+            //if(System.Diagnostics.Debugger.IsAttached)
+            //    System.Diagnostics.Debugger.Break();
             LastUpdate = DateTime.Now;
-            Mods = GetFolders(inputDirectory);
+            Mods = GetFolders(inputDirectory, filter);
             OldHashes = HashAllMods;
-            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(inputDirectory.FullName, "server.json")));
+            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(inputDirectory.FullName, JsonFileName)));
             FileCopy.CopyAll(inputDirectory, new DirectoryInfo(_localPath));
             FileCopy.CleanUpFolder(inputDirectory, new DirectoryInfo(_localPath), new DirectoryInfo(_localPath));
-            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(_localPath,"server.json")));
+            FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(_localPath,JsonFileName)));
             // TODO: Maybe remove all zsync files?
             ModHashes = HashAllMods;
 
@@ -238,6 +257,7 @@ namespace BSU.Sync
         {
             var changedFiles = new List<string>();
 
+            ServerFileName = JsonFileName;
             foreach (string f in Directory.EnumerateFiles(_localPath, "*", SearchOption.AllDirectories)
                 .Where(name => !name.EndsWith(".zsync") && !name.EndsWith("hash.json") &&
                                !name.EndsWith(ServerFileName)))
@@ -248,30 +268,39 @@ namespace BSU.Sync
 
                 string[] splitPath = path.Split(new[] {Path.DirectorySeparatorChar}, 2);
 
-                string mod = splitPath[0];
-                string relativePath = splitPath[1];
-
-                List<HashType> oldModHash = OldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
-
-                HashType hash1 =
-                    oldModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
-
-                List<HashType> newModHash = ModHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
-
-                HashType hash2 =
-                    newModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
-
-                if (hash1 == null || hash2 == null)
+                try
                 {
-                    // File is new 
-                    changedFiles.Add(f);
+
+                    string mod = splitPath[0];
+                    string relativePath = splitPath[1];
+                    
+                    List<HashType> oldModHash = OldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+
+                    HashType hash1 =
+                        oldModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+
+                    List<HashType> newModHash = ModHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+
+                    HashType hash2 =
+                        newModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+
+                    if (hash1 == null || hash2 == null)
+                    {
+                        // File is new 
+                        changedFiles.Add(f);
+                        continue;
+                    }
+
+                    if (!hash1.Hash.SequenceEqual(hash2.Hash))
+                    {
+                        changedFiles.Add(f);
+                    }
+                }
+                catch (IndexOutOfRangeException)
+                {
                     continue;
                 }
-
-                if (!hash1.Hash.SequenceEqual(hash2.Hash))
-                {
-                    changedFiles.Add(f);
-                }
+                
             }
 
             return changedFiles;
