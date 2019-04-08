@@ -64,7 +64,7 @@ namespace BSU.Sync
             foreach (FileInfo file in target.GetFiles())
             {
                 // Do not delete the control files, they never exist in the input folder and are quite useful.. 
-                if (Path.GetExtension(file.FullName) != ".zsync" && file.Name != "hash.json")
+                if (Path.GetExtension(file.FullName) != ".zsync" && Path.GetExtension(file.FullName) != ".json")
                 {
                     if (!File.Exists(Path.Combine(Base.FullName, file.FullName.Replace(targetBaseFolder.FullName, string.Empty).Substring(1))))
                     {
