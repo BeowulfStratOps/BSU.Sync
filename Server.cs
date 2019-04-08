@@ -7,7 +7,6 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using NLog;
-using sun.security.util;
 
 namespace BSU.Sync
 {
@@ -158,23 +157,14 @@ namespace BSU.Sync
         }
         public List<ModFolder> GetFolders(DirectoryInfo filePath, string[] filter = null)
         {
-            //filter = filter ?? new string[0];
             _logger.Info("Finding folders");
             var returnList = new List<ModFolder>();
             foreach (string d in Directory.GetDirectories(filePath.FullName))
             {
                 var folder = d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty);
-                if (filter.Length  != 0)
-                {
-                    if (!filter.Contains(d)) continue;
-                    _logger.Info("Found folder {0}", folder);
-                    returnList.Add(new ModFolder(folder));
-                }
-                else
-                {
-                    _logger.Info("Found folder {0}", folder);
-                    returnList.Add(new ModFolder(folder));
-                }
+                if (filter != null && !filter.Contains(folder)) continue;
+                _logger.Info("Found folder {0}", folder);
+                returnList.Add(new ModFolder(folder));
 
             }
             return returnList;
@@ -233,13 +223,13 @@ namespace BSU.Sync
             Mods = GetFolders(inputDirectory, filter);
             OldHashes = HashAllMods;
             FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(inputDirectory.FullName, JsonFileName)));
-            FileCopy.CopyAll(inputDirectory, new DirectoryInfo(_localPath));
+            FileCopy.CopyFolders(inputDirectory, new DirectoryInfo(_localPath), filter);
             FileCopy.CleanUpFolder(inputDirectory, new DirectoryInfo(_localPath), new DirectoryInfo(_localPath));
             FileWriter.WriteServerConfig(GetServerFile(), new FileInfo(Path.Combine(_localPath,JsonFileName)));
             // TODO: Maybe remove all zsync files?
             ModHashes = HashAllMods;
 
-            List<String> changedFiles = GetChangedFiles(inputDirectory);
+            List<String> changedFiles = GetChangedFiles(inputDirectory, filter);
 
             foreach (string f in changedFiles)
             {
@@ -253,13 +243,20 @@ namespace BSU.Sync
         /// </summary>
         /// <param name="inputDirectory">Mod input directory</param>
         /// <returns>List of changed files</returns>
-        private List<string> GetChangedFiles(DirectoryInfo inputDirectory)
+        private List<string> GetChangedFiles(DirectoryInfo inputDirectory, string[] filter)
         {
             var changedFiles = new List<string>();
 
             ServerFileName = JsonFileName;
-            foreach (string f in Directory.EnumerateFiles(_localPath, "*", SearchOption.AllDirectories)
-                .Where(name => !name.EndsWith(".zsync") && !name.EndsWith("hash.json") &&
+
+            var modFolders = Directory.EnumerateDirectories(_localPath);
+            if (filter != null)
+                modFolders = modFolders.Where(path => filter.Contains(new DirectoryInfo(path).Name));
+
+            var modFiles =
+                modFolders.SelectMany(path => Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories));
+
+            foreach (string f in modFiles.Where(name => !name.EndsWith(".zsync") && !name.EndsWith("hash.json") &&
                                !name.EndsWith(ServerFileName)))
             {
                 // Find the source file in the hashes and compare
@@ -267,38 +264,30 @@ namespace BSU.Sync
 
 
                 string[] splitPath = path.Split(new[] {Path.DirectorySeparatorChar}, 2);
-
-                try
-                {
-
-                    string mod = splitPath[0];
-                    string relativePath = splitPath[1];
+                
+                string mod = splitPath[0];
+                string relativePath = splitPath[1];
                     
-                    List<HashType> oldModHash = OldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+                List<HashType> oldModHash = OldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
 
-                    HashType hash1 =
-                        oldModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+                HashType hash1 =
+                    oldModHash?.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
 
-                    List<HashType> newModHash = ModHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+                List<HashType> newModHash = ModHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
 
-                    HashType hash2 =
-                        newModHash.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+                HashType hash2 =
+                    newModHash?.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
 
-                    if (hash1 == null || hash2 == null)
-                    {
-                        // File is new 
-                        changedFiles.Add(f);
-                        continue;
-                    }
-
-                    if (!hash1.Hash.SequenceEqual(hash2.Hash))
-                    {
-                        changedFiles.Add(f);
-                    }
-                }
-                catch (IndexOutOfRangeException)
+                if (hash1 == null || hash2 == null)
                 {
+                    // File is new 
+                    changedFiles.Add(f);
                     continue;
+                }
+
+                if (!hash1.Hash.SequenceEqual(hash2.Hash))
+                {
+                    changedFiles.Add(f);
                 }
                 
             }

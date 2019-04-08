@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using NLog;
 
 namespace BSU.Sync
@@ -6,6 +7,23 @@ namespace BSU.Sync
     internal static class FileCopy
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+        /// <summary>
+        /// Copies filtered sub-folders from one folder to another
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="target"></param>
+        /// <param name="filter"></param>
+        internal static void CopyFolders(DirectoryInfo source, DirectoryInfo target, string[] filter = null)
+        {
+            foreach (var directory in source.GetDirectories())
+            {
+                if (filter != null && !filter.Contains(directory.Name)) continue;
+                var nextTarget = target.CreateSubdirectory(directory.Name);
+                CopyAll(directory, nextTarget);
+            }
+        }
+
         /// <summary>
         /// Copies all files from one folder to another, overwriting if the source file is newer
         /// </summary>
