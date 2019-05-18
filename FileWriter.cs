@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using BSU.Sync.FileTypes;
+using NLog;
 
 
 namespace BSU.Sync
@@ -14,6 +16,7 @@ namespace BSU.Sync
             using (TextWriter writer = new StreamWriter(new FileStream(outputFile.FullName, FileMode.Create)))
             {
                 var js = new JsonSerializer {Formatting = Formatting.Indented};
+                LogManager.GetCurrentClassLogger().Info("Writing server file with mods {0} to {1}", string.Join(", ", serverFile.ModFolders.Select(mf => mf.ModName)), outputFile.FullName);
                 js.Serialize(writer, serverFile);
                 writer.Flush();
             }

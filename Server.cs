@@ -157,12 +157,20 @@ namespace BSU.Sync
         }
         public List<ModFolder> GetFolders(DirectoryInfo filePath, string[] filter = null)
         {
-            _logger.Info("Finding folders");
+            _logger.Info("Finding folders in {0}. Using filter: {1}", filePath.FullName, filter != null);
+            if (filter != null)
+            {
+                _logger.Info("Filter: {0}", string.Join(", ", filter));
+            }
             var returnList = new List<ModFolder>();
             foreach (string d in Directory.GetDirectories(filePath.FullName))
             {
-                var folder = d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty);
-                if (filter != null && !filter.Contains(folder)) continue;
+                var folder = d.Replace(filePath.FullName, string.Empty).Replace(@"\", string.Empty).Replace("/", string.Empty);
+                if (filter != null && !filter.Contains(folder))
+                {
+                    _logger.Info("Skipping folder {0}", folder);
+                    continue;
+                }
                 _logger.Info("Found folder {0}", folder);
                 returnList.Add(new ModFolder(folder));
 
@@ -253,43 +261,60 @@ namespace BSU.Sync
             if (filter != null)
                 modFolders = modFolders.Where(path => filter.Contains(new DirectoryInfo(path).Name));
 
-            var modFiles =
-                modFolders.SelectMany(path => Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories));
-
-            foreach (string f in modFiles.Where(name => !name.EndsWith(".zsync") && !name.EndsWith("hash.json") &&
-                               !name.EndsWith(ServerFileName)))
+            foreach (var modFolder in modFolders)
             {
-                // Find the source file in the hashes and compare
-                string path = f.Replace(_localPath, string.Empty).TrimStart(Path.DirectorySeparatorChar);
+                var modFiles = Directory.EnumerateFiles(modFolder, "*", SearchOption.AllDirectories);
+                int countNew = 0, countDeleted = 0, countChanged = 0;
 
-
-                string[] splitPath = path.Split(new[] {Path.DirectorySeparatorChar}, 2);
-                
-                string mod = splitPath[0];
-                string relativePath = splitPath[1];
-                    
-                List<HashType> oldModHash = OldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
-
-                HashType hash1 =
-                    oldModHash?.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
-
-                List<HashType> newModHash = ModHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
-
-                HashType hash2 =
-                    newModHash?.FirstOrDefault(x => x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
-
-                if (hash1 == null || hash2 == null)
+                foreach (string f in modFiles.Where(name => !name.EndsWith(".zsync") && !name.EndsWith("hash.json") &&
+                                                            !name.EndsWith(ServerFileName)))
                 {
-                    // File is new 
-                    changedFiles.Add(f);
-                    continue;
+                    // Find the source file in the hashes and compare
+                    string path = f.Replace(_localPath, string.Empty).TrimStart(Path.DirectorySeparatorChar);
+
+
+                    string[] splitPath = path.Split(new[] {Path.DirectorySeparatorChar}, 2);
+
+                    string mod = splitPath[0];
+                    string relativePath = splitPath[1];
+
+                    List<HashType> oldModHash = OldHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+
+                    HashType hash1 =
+                        oldModHash?.FirstOrDefault(x =>
+                            x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+
+                    List<HashType> newModHash = ModHashes.FirstOrDefault(x => x.ModName.ModName == mod).Hashes;
+
+                    HashType hash2 =
+                        newModHash?.FirstOrDefault(x =>
+                            x.FileName.TrimStart(Path.DirectorySeparatorChar) == relativePath);
+
+
+                    if (hash1 == null && hash2 == null)
+                    {
+                        _logger.Info("Couldn't find hash with relative path {0}.", relativePath);
+                    }
+
+                    if (hash1 == null || hash2 == null)
+                    {
+                        // File is new 
+                        changedFiles.Add(f);
+                        if (hash1 == null) countNew++;
+                        if (hash2 == null) countDeleted++;
+                        continue;
+                    }
+
+                    if (!hash1.Hash.SequenceEqual(hash2.Hash))
+                    {
+                        changedFiles.Add(f);
+                        countChanged++;
+                    }
                 }
 
-                if (!hash1.Hash.SequenceEqual(hash2.Hash))
-                {
-                    changedFiles.Add(f);
-                }
-                
+                _logger.Info("New files in {0}: {1}", modFolder, countNew);
+                _logger.Info("Deleted files in {0}: {1}", modFolder, countDeleted);
+                _logger.Info("Changed files in {0}: {1}", modFolder, countChanged);
             }
 
             return changedFiles;

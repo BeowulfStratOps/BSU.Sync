@@ -65,8 +65,9 @@ namespace BSU.Sync
         {
 			if (Environment.OSVersion.Platform == PlatformID.Unix) 
 			{
-				dir = dir.Replace (@"\", string.Empty);
+				dir = dir.Replace (@"\", "/");
 			}
+            LogManager.GetCurrentClassLogger().Info("HashFolder {0}", dir);
             var hashes = new List<HashType>();
             if (!Directory.Exists(dir)) return hashes;
             hashes.AddRange(from file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".zsync")) where !file.EndsWith("hash.json") && !file.EndsWith("server.json") let hash = GetFileHash(file) select new HashType(file.Replace(dir, string.Empty), hash, GetFileSize(file)));
