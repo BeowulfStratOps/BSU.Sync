@@ -20,7 +20,7 @@ namespace BSU.Sync
             using (FileStream fileStream = File.Open(filename, FileMode.Open, FileAccess.Read))
             {
                 // As per T16, if the file is a PBO we just extract the pre-computed hash from the file
-                if (Path.GetExtension(filename) == ".pbo" || Path.GetExtension(filename) == ".ebo") // Adding ebo JUST in case there is ever a situation where they are shared
+                if ((Path.GetExtension(filename) == ".pbo" || Path.GetExtension(filename) == ".ebo") && filename.Length > 20) // Adding ebo JUST in case there is ever a situation where they are shared
                 {
                     byte[] array = new byte[20];
                     fileStream.Seek(-20L, SeekOrigin.End);
