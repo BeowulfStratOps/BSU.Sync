@@ -522,7 +522,7 @@ namespace BSU.Sync
                     // Determine all deletions first
                     foreach (HashType ht in ModHashes[indexInLocalHash].Hashes)
                     {
-                        int index = newHashes[indexInNewHash].Hashes.FindIndex(x => x.FileName == ht.FileName);
+                        int index = newHashes[indexInNewHash].Hashes.FindIndex(x => x.FileName.Equals(ht.FileName,StringComparison.InvariantCultureIgnoreCase));
                         if (index == -1)
                         {
                             // need to add a delete change
@@ -533,7 +533,7 @@ namespace BSU.Sync
                     foreach (HashType h in mfh.Hashes)
                     {
                         
-                        if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase)))
                         {
                             // File exists both in the local hash and the remote hash
                             if (!ModHashes[indexInLocalHash]
@@ -545,12 +545,12 @@ namespace BSU.Sync
                                 changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.Update, h.FileSize));
                             }
                         }
-                        else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName ))
+                        else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName.Equals(x.FileName,StringComparison.InvariantCultureIgnoreCase) ))
                         {
                             // Does not exist locally, but does exist remotely. Acquire it
                             changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.New, h.FileSize));
                         }
-                        else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName == h.FileName))
+                        else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase)))
                         {
                             // Exists locally, but does not exist remotely. Delete it
                             changeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete, ChangeReason.Deleted, 0));
@@ -564,12 +564,12 @@ namespace BSU.Sync
         {
             foreach (ModFolderHash mfh in remoteHashes)
             {
-                int indexInLocal = ModHashes.FindIndex(x => x.ModName.ModName == mfh.ModName.ModName);
+                int indexInLocal = ModHashes.FindIndex(x => x.ModName.ModName.Equals(mfh.ModName.ModName,StringComparison.InvariantCultureIgnoreCase));
                 foreach (HashType h in mfh.Hashes)
                 {
-                    if (ModHashes[indexInLocal].Hashes.Exists(x => x.FileName == h.FileName))
+                    if (ModHashes[indexInLocal].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase)))
                     {
-                        HashType remoteHash = ModHashes[indexInLocal].Hashes.Find(x => x.FileName == h.FileName);
+                        HashType remoteHash = ModHashes[indexInLocal].Hashes.Find(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase));
                         if (remoteHash.Hash == h.Hash)
                         {
                             break;
