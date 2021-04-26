@@ -537,7 +537,7 @@ namespace BSU.Sync
                         {
                             // File exists both in the local hash and the remote hash
                             if (!ModHashes[indexInLocalHash]
-                                .Hashes.Exists(x => x.FileName == h.FileName &&
+                                .Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase) &&
                                                     !x.Hash.SequenceEqual(h.Hash))) continue;
                             {
                                 // A file exists but has a different hash, it must be (re)acquired 
@@ -545,12 +545,12 @@ namespace BSU.Sync
                                 changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.Update, h.FileSize));
                             }
                         }
-                        else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName.Equals(x.FileName,StringComparison.InvariantCultureIgnoreCase) ))
+                        else if (!ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase)) && newHashes[indexInNewHash].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase) ))
                         {
                             // Does not exist locally, but does exist remotely. Acquire it
                             changeList.Add(new Change(mfh.ModName.ModName + h.FileName, ChangeAction.Acquire, ChangeReason.New, h.FileSize));
                         }
-                        else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName == h.FileName) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase)))
+                        else if (ModHashes[indexInLocalHash].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase)) && !newHashes[indexInNewHash].Hashes.Exists(x => x.FileName.Equals(h.FileName,StringComparison.InvariantCultureIgnoreCase)))
                         {
                             // Exists locally, but does not exist remotely. Delete it
                             changeList.Add(new Change(mfh.ModName.ModName +  h.FileName, ChangeAction.Delete, ChangeReason.Deleted, 0));
