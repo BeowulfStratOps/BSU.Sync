@@ -6,6 +6,7 @@ using BSU.Sync.FileTypes;
 using System.IO;
 using System.Net;
 using System.Threading;
+using Newtonsoft.Json;
 using NLog;
 
 namespace BSU.Sync
@@ -327,20 +328,36 @@ namespace BSU.Sync
         {
             return Mods;
         }
+
         /// <summary>
         /// Fetches changes
         /// </summary>
         /// <param name="baseDirectory">Directory to download mods to</param>
         /// <param name="newHashes">NewHashes to process</param>
+        /// <param name="saveChangeList">Save the change list to a JSON file in appdata</param>
         /// <returns>Number of changes that failed, 0 if none</returns>
         /// <remarks>If return > 0 then the process should be re-run</remarks>
-        public int FetchChanges(DirectoryInfo baseDirectory, List<ModFolderHash> newHashes)
+        public int FetchChanges(DirectoryInfo baseDirectory, List<ModFolderHash> newHashes, bool saveChangeList)
         {
             OnProgressUpdateEvent(new ProgressUpdateEventArguments() { ProgressValue = 10 });
 
             var failedChanges = new List<Change>();
             
             List<Change> changes = GenerateChangeList(newHashes);
+
+            if (saveChangeList)
+            {
+
+                var folder = new DirectoryInfo(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeowulfSync"));
+                var fileName = Path.Combine(folder.FullName,
+                    $"ChangeList-{DateTime.UtcNow:yyyy-MM-dd-THH-mm-ssZ}.json");
+
+                _logger.Info($"Saving change list to {fileName}");
+                File.WriteAllText(fileName, JsonConvert.SerializeObject(changes));
+
+            }
+        
 
             var tasks = new List<Task>();
             
