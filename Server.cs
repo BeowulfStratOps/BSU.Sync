@@ -347,15 +347,7 @@ namespace BSU.Sync
 
             if (saveChangeList)
             {
-
-                var folder = new DirectoryInfo(Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeowulfSync"));
-                var fileName = Path.Combine(folder.FullName,
-                    $"ChangeList-{DateTime.UtcNow:yyyy-MM-dd-THH-mm-ssZ}.json");
-
-                _logger.Info($"Saving change list to {fileName}");
-                File.WriteAllText(fileName, JsonConvert.SerializeObject(changes));
-
+                WriteChanges(changes);
             }
         
 
@@ -481,11 +473,37 @@ namespace BSU.Sync
             {
                 // Failed to acquire at least one file
                 _logger.Error("Failed to complete {0}/{1} changes", failedChanges.Count(), changes.Count());
-                
+
+                if (!saveChangeList)
+                {
+                    // We weren't intending to save it, but lets save it as its failed 
+                    WriteChanges(changes);
+                }
+
+                var folder = new DirectoryInfo(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeowulfSync"));
+                var fileName = Path.Combine(folder.FullName,
+                    $"ChangeListFailed-{DateTime.UtcNow:yyyy-MM-dd-THH-mm-ssZ}.json");
+
+                _logger.Error($"Saving failed change list to {fileName}");
+                File.WriteAllText(fileName, JsonConvert.SerializeObject(failedChanges));
+
+
             }
             return failedChanges.Count();
 
 
+        }
+
+        private void WriteChanges(List<Change> changes)
+        {
+            var folder = new DirectoryInfo(Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeowulfSync"));
+            var fileName = Path.Combine(folder.FullName,
+                $"ChangeList-{DateTime.UtcNow:yyyy-MM-dd-THH-mm-ssZ}.json");
+
+            _logger.Info($"Saving change list to {fileName}");
+            File.WriteAllText(fileName, JsonConvert.SerializeObject(changes));
         }
 
         /// <summary>
