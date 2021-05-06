@@ -18,5 +18,9 @@ namespace BSU.Sync.FileTypes.BI
         [XmlArrayItem(ElementName = "id")]
         public List<String> PublishedId = new List<String>();
 
+        [XmlArray("dlcs-appids")]
+        [XmlArrayItem("id")]
+        public List<string> DlcIds = new List<string>();
+
     }
 }

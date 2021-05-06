@@ -26,7 +26,9 @@ namespace BSU.Sync.FileTypes
         public Guid ServerGuid { get; set; }
         [JsonProperty]
         public List<ModFolder> ModFolders { get; set; }
-        internal ServerFile(string serverName, string serverAddress, int servePort, string password, List<ModFolder> modFolders,DateTime lastUpdate, DateTime creationDate, Guid serverGuid, List<Uri> syncUris)
+        [JsonProperty]
+        public List<String> Dlcs { get; set; }
+        internal ServerFile(string serverName, string serverAddress, int servePort, string password, List<ModFolder> modFolders,DateTime lastUpdate, DateTime creationDate, Guid serverGuid, List<Uri> syncUris, List<string> dlcs)
         {
             ServerAddress = serverAddress;
             ServerName = serverName;
@@ -37,6 +39,7 @@ namespace BSU.Sync.FileTypes
             ServerGuid = serverGuid;
             SyncUris = syncUris;
             LastUpdateDate = lastUpdate;
+            Dlcs = dlcs;
         }
         internal ServerFile()
         {

@@ -31,7 +31,7 @@ namespace BSU.Sync
         /// <param name="baseDirectory"></param>
         /// <param name="modFolders"></param>
         /// <returns></returns>
-        public static string GeneratePreset(string baseDirectory, List<ModFolder> modFolders)
+        public static string GeneratePreset(string baseDirectory, List<ModFolder> modFolders, List<string> dlcs)
         {
             Local local = ReadLocal() ?? new Local
             {
@@ -44,7 +44,8 @@ namespace BSU.Sync
             var preset = new Preset2
             {
                 LastUpdated = DateTime.UtcNow,
-                PublishedId = new List<string>()
+                PublishedId = new List<string>(),
+                DlcIds = dlcs
             };
 
             foreach (ModFolder mf in modFolders)

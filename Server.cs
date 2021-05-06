@@ -70,6 +70,7 @@ namespace BSU.Sync
         public Guid ServerGuid { get; private set; }
         public List<Uri> SyncUris { get; private set; }
         public List<ModFolderHash> OldHashes { get; private set; }
+        public List<String> Dlcs { get; private set; }
         
         private string JsonFileName { get; set; }
 
@@ -209,7 +210,7 @@ namespace BSU.Sync
 
         public ServerFile GetServerFile()
         {
-            return new ServerFile(ServerName, ServerAddress, ServerPort, Password, Mods, LastUpdate, CreationDate, ServerGuid, SyncUris);
+            return new ServerFile(ServerName, ServerAddress, ServerPort, Password, Mods, LastUpdate, CreationDate, ServerGuid, SyncUris, Dlcs);
         }
         public void LoadServer(ServerFile sf, string localPath)
         {
@@ -223,6 +224,7 @@ namespace BSU.Sync
             CreationDate = sf.CreationDate;
             ServerGuid = sf.ServerGuid;
             SyncUris = sf.SyncUris;
+            Dlcs = sf.Dlcs;
         }
         public void UpdateServer(DirectoryInfo inputDirectory, string[] filter = null)
         {
