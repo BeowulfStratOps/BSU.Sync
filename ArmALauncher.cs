@@ -132,6 +132,9 @@ namespace BSU.Sync
                 }
             }
 
+            local.KnownLocalMods = local.KnownLocalMods.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
+            local.UserDirectories = local.UserDirectories.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
+
             return local;
         }
 
